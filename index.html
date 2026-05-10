@@ -93,7 +93,7 @@
     function triggerExplosion(bc) {
       explosions.push({ x: bc.x, y: bc.y, r: BLACK_RADIUS, maxR: EXPLODE_RADIUS, alpha: 1 });
       if (Math.hypot(circle.x - bc.x, circle.y - bc.y) < EXPLODE_RADIUS + CIRCLE_RADIUS) {
-        circle.hp = Math.max(0, circle.hp - 9);
+        circle.hp = Math.max(0, circle.hp - 16);
       }
     }
 
@@ -102,7 +102,7 @@
     const RED_MAX_HP = 350;
 
     const HEART_INTERVAL = 15000;
-    const HEART_HEAL = 15;
+    const HEART_HEAL = 23;
     const hearts = [];
     let lastHeartSpawn = 0;
     const GREEN_SPEED = 1.8;
@@ -282,7 +282,7 @@
           continue;
         }
         if (Math.hypot(a.x - circle.x, a.y - circle.y) < CIRCLE_RADIUS) {
-          circle.hp = Math.max(0, circle.hp - 17);
+          circle.hp = Math.max(0, circle.hp - 12);
           arrows.splice(i, 1);
           continue;
         }
