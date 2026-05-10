@@ -46,6 +46,53 @@
   </div>
 
   <script>
+    // 배경음악 (Web Audio API 칩튠)
+    let audioCtx = null;
+    let bgmPlaying = false;
+    let bgmTimeout = null;
+
+    const melody = [
+      [330, 0.18], [294, 0.18], [262, 0.18], [294, 0.18],
+      [330, 0.18], [330, 0.18], [330, 0.36],
+      [294, 0.18], [294, 0.18], [294, 0.36],
+      [330, 0.18], [392, 0.18], [392, 0.36],
+      [330, 0.18], [294, 0.18], [262, 0.18], [294, 0.18],
+      [330, 0.18], [330, 0.18], [330, 0.18], [330, 0.18],
+      [294, 0.18], [294, 0.18], [330, 0.18], [294, 0.18],
+      [262, 0.72],
+    ];
+
+    function playNote(freq, duration, startTime, vol = 0.08) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(vol, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration * 0.9);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    }
+
+    function scheduleBgm() {
+      if (!bgmPlaying) return;
+      let t = audioCtx.currentTime;
+      for (const [freq, dur] of melody) {
+        playNote(freq, dur, t);
+        t += dur;
+      }
+      const total = melody.reduce((s, [, d]) => s + d, 0);
+      bgmTimeout = setTimeout(scheduleBgm, total * 1000 - 100);
+    }
+
+    function startBgm() {
+      if (bgmPlaying) return;
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      bgmPlaying = true;
+      scheduleBgm();
+    }
+
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -254,6 +301,7 @@
           stageStartTime = Date.now();
           lastBlackSpawn = Date.now();
           lastHeartSpawn = Date.now();
+          startBgm();
         }
         lastKeyTime = Date.now();
         const tx = circle.x;
