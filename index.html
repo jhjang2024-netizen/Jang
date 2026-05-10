@@ -183,6 +183,11 @@
     let redCircle = null;
     const greenCircles = [];
     let lastGreenSpawn = 0;
+    const yellowBullets = [];
+    let lastYellowShot = 0;
+    const YELLOW_RADIUS = 7;
+    const YELLOW_SPEED = 5;
+    const YELLOW_INTERVAL = 600;
 
     function spawnRedCircle() {
       const side = Math.floor(Math.random() * 4);
@@ -202,12 +207,32 @@
       greenCircles.push({ x: redCircle.x, y: redCircle.y, vx: (dx/dist)*gs, vy: (dy/dist)*gs });
     }
 
+    function updateYellowBullets() {
+      const now = Date.now();
+      if (stage === 5 && gameStarted && !stageClearring && redCircle && now - lastYellowShot >= YELLOW_INTERVAL) {
+        const dx = redCircle.x - circle.x, dy = redCircle.y - circle.y;
+        const dist = Math.hypot(dx, dy);
+        yellowBullets.push({ x: circle.x, y: circle.y, vx: (dx/dist)*YELLOW_SPEED, vy: (dy/dist)*YELLOW_SPEED });
+        lastYellowShot = now;
+      }
+      for (let i = yellowBullets.length - 1; i >= 0; i--) {
+        const b = yellowBullets[i];
+        b.x += b.vx; b.y += b.vy;
+        if (redCircle && Math.hypot(b.x - redCircle.x, b.y - redCircle.y) < RED_RADIUS + YELLOW_RADIUS) {
+          redCircle.hp -= 15;
+          if (redCircle.hp <= 0) { redCircle = null; greenCircles.length = 0; }
+          yellowBullets.splice(i, 1); continue;
+        }
+        if (b.x < -50 || b.x > MAP_W + 50 || b.y < -50 || b.y > MAP_H + 50) yellowBullets.splice(i, 1);
+      }
+    }
+
     function updateGreenCircles() {
       const now = Date.now();
       if (stage === 5 && gameStarted && !stageClearring) {
         if (!redCircle) { spawnRedCircle(); lastGreenSpawn = now; }
         if (now - lastGreenSpawn >= 1500) { spawnGreenCircle(); lastGreenSpawn = now; }
-      } else if (stage !== 5) { redCircle = null; greenCircles.length = 0; }
+      } else if (stage !== 5) { redCircle = null; greenCircles.length = 0; yellowBullets.length = 0; }
       for (let i = greenCircles.length - 1; i >= 0; i--) {
         const g = greenCircles[i];
         g.x += g.vx; g.y += g.vy;
@@ -221,7 +246,7 @@
     function advanceStage() {
       stage++; arrowSpeed = diffConfigs[difficulty].arrowSpeedBase + (stage - 1) * 0.5;
       arrows.length = 0; blackCircles.length = 0; explosions.length = 0;
-      greenCircles.length = 0; hearts.length = 0; redCircle = null;
+      greenCircles.length = 0; yellowBullets.length = 0; hearts.length = 0; redCircle = null;
       stageStartTime = Date.now(); lastBlackSpawn = Date.now();
       lastHeartSpawn = Date.now(); stageClearring = false; lastKeyTime = Date.now();
     }
@@ -351,7 +376,7 @@
       if (gameStarted && !stageClearring && now - lastKeyTime >= diffConfigs[difficulty].idleLimit) circle.hp = 0;
       if (gameStarted && !stageClearring && now - stageStartTime >= STAGE_DURATION) { stageClearring = true; stageClearAt = now; }
       if (stageClearring && now - stageClearAt >= 2000) advanceStage();
-      updateArrows(); updateBlackCircles(); updateGreenCircles(); updateHearts();
+      updateArrows(); updateBlackCircles(); updateGreenCircles(); updateYellowBullets(); updateHearts();
     }
 
     function draw() {
@@ -404,6 +429,11 @@
         ctx.strokeStyle = `rgba(255,200,0,${ex.alpha})`; ctx.lineWidth = 3; ctx.stroke();
       }
 
+      for (const b of yellowBullets) {
+        ctx.beginPath(); ctx.arc(b.x, b.y, YELLOW_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffe600'; ctx.fill();
+        ctx.strokeStyle = '#ffaa00'; ctx.lineWidth = 2; ctx.stroke();
+      }
       for (const h of hearts) drawHeart(h.x, h.y);
       for (const a of arrows) drawArrow(a);
 
