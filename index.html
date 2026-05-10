@@ -59,6 +59,8 @@
     const circle = {
       x: MAP_SIZE / 2,
       y: MAP_SIZE / 2,
+      hp: 100,
+      maxHp: 100,
     };
 
     const keys = {
@@ -101,6 +103,26 @@
       ctx.strokeStyle = '#63b3ff';
       ctx.lineWidth = 2;
       ctx.stroke();
+
+      // 체력바 배경
+      const barWidth = CIRCLE_RADIUS * 2 + 10;
+      const barHeight = 6;
+      const barX = circle.x - barWidth / 2;
+      const barY = circle.y - CIRCLE_RADIUS - 12;
+      ctx.fillStyle = '#333';
+      ctx.fillRect(barX, barY, barWidth, barHeight);
+
+      // 체력바
+      const hpRatio = circle.hp / circle.maxHp;
+      const hpColor = hpRatio > 0.5 ? '#00cc44' : hpRatio > 0.25 ? '#ffaa00' : '#ff3333';
+      ctx.fillStyle = hpColor;
+      ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+
+      // 체력 수치 텍스트
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${circle.hp} / ${circle.maxHp}`, circle.x, barY - 3);
     }
 
     function gameLoop() {
