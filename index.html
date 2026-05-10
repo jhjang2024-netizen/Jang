@@ -8,12 +8,56 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #000; overflow: hidden; }
     #gameCanvas { display: block; }
+    #diffUI {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      text-align: center; pointer-events: auto; z-index: 10;
+    }
+    #diffUI h2 { color: #fff; font: bold 26px Arial; margin-bottom: 18px; letter-spacing: 2px; }
+    .diff-btn {
+      display: inline-block; margin: 0 8px; padding: 11px 22px;
+      font: bold 16px Arial; border-radius: 8px; cursor: pointer;
+      border: 3px solid transparent; transition: all 0.15s;
+      background: rgba(255,255,255,0.1); color: #ccc;
+    }
+    .diff-btn:hover { background: rgba(255,255,255,0.2); }
+    .diff-btn.easy.active     { border-color: #44cc88; color: #44cc88; background: rgba(68,204,136,0.2); }
+    .diff-btn.normal.active   { border-color: #4488ff; color: #4488ff; background: rgba(68,136,255,0.2); }
+    .diff-btn.hard.active     { border-color: #ff4444; color: #ff4444; background: rgba(255,68,68,0.2); }
+    .diff-btn.veryhard.active { border-color: #cc00ff; color: #cc00ff; background: rgba(204,0,255,0.2); }
+    #diffUI p { color: rgba(255,255,255,0.55); font: 14px Arial; margin-top: 18px; }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
 
+  <div id="diffUI">
+    <h2>난이도 선택</h2>
+    <div>
+      <button class="diff-btn easy"     onclick="setDifficulty('easy')">쉬움</button>
+      <button class="diff-btn normal active" onclick="setDifficulty('normal')">보통</button>
+      <button class="diff-btn hard"     onclick="setDifficulty('hard')">어려움</button>
+      <button class="diff-btn veryhard" onclick="setDifficulty('veryhard')">매우어려움</button>
+    </div>
+    <p>방향키를 눌러 시작</p>
+  </div>
+
   <script>
+    // 난이도 설정
+    let difficulty = 'normal';
+    const diffConfigs = {
+      easy:    { arrowSpeedBase: 2,   arrowDamage: 8,  explosionDamage: 10, greenDamage: 8,  greenSpeed: 1.3, idleLimit: 5000, blackBase: 2500, maxHp: 150 },
+      normal:  { arrowSpeedBase: 3,   arrowDamage: 12, explosionDamage: 16, greenDamage: 12, greenSpeed: 1.8, idleLimit: 3000, blackBase: 2000, maxHp: 100 },
+      hard:    { arrowSpeedBase: 4.5, arrowDamage: 18, explosionDamage: 25, greenDamage: 18, greenSpeed: 2.5, idleLimit: 2000, blackBase: 1400, maxHp: 80  },
+      veryhard:{ arrowSpeedBase: 6,   arrowDamage: 25, explosionDamage: 35, greenDamage: 25, greenSpeed: 3.2, idleLimit: 1500, blackBase: 1000, maxHp: 60  },
+    };
+
+    function setDifficulty(d) {
+      if (gameStarted) return;
+      difficulty = d;
+      document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('.diff-btn.' + d).classList.add('active');
+    }
+
     // 배경음악 (Web Audio API 2성부 게임 BGM)
     let audioCtx = null;
     let bgmPlaying = false;
@@ -112,7 +156,7 @@
     const STAGE_DURATION = 20000;
     let stageStartTime = 0, stageClearAt = 0, stageClearring = false;
 
-    function stageBlackInterval() { return Math.max(800, 2000 - (stage - 1) * 200); }
+    function stageBlackInterval() { return Math.max(800, diffConfigs[difficulty].blackBase - (stage - 1) * 200); }
     let lastBlackSpawn = 0;
 
     function spawnBlackCircle() {
@@ -126,7 +170,7 @@
     function triggerExplosion(bc) {
       explosions.push({ x: bc.x, y: bc.y, r: BLACK_RADIUS, maxR: EXPLODE_RADIUS, alpha: 1 });
       if (Math.hypot(circle.x - bc.x, circle.y - bc.y) < EXPLODE_RADIUS + CIRCLE_RADIUS)
-        circle.hp = Math.max(0, circle.hp - 16);
+        circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].explosionDamage);
     }
 
     const RED_RADIUS = CIRCLE_RADIUS * 4;
@@ -136,7 +180,6 @@
     const HEART_HEAL = 23;
     const hearts = [];
     let lastHeartSpawn = 0;
-    const GREEN_SPEED = 1.8;
     let redCircle = null;
     const greenCircles = [];
     let lastGreenSpawn = 0;
@@ -155,7 +198,8 @@
       if (!redCircle) return;
       const dx = circle.x - redCircle.x, dy = circle.y - redCircle.y;
       const dist = Math.hypot(dx, dy);
-      greenCircles.push({ x: redCircle.x, y: redCircle.y, vx: (dx/dist)*GREEN_SPEED, vy: (dy/dist)*GREEN_SPEED });
+      const gs = diffConfigs[difficulty].greenSpeed;
+      greenCircles.push({ x: redCircle.x, y: redCircle.y, vx: (dx/dist)*gs, vy: (dy/dist)*gs });
     }
 
     function updateGreenCircles() {
@@ -168,14 +212,14 @@
         const g = greenCircles[i];
         g.x += g.vx; g.y += g.vy;
         if (Math.hypot(g.x - circle.x, g.y - circle.y) < CIRCLE_RADIUS + GREEN_RADIUS) {
-          circle.hp = Math.max(0, circle.hp - 12); greenCircles.splice(i, 1); continue;
+          circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].greenDamage); greenCircles.splice(i, 1); continue;
         }
         if (g.x < -50 || g.x > MAP_W + 50 || g.y < -50 || g.y > MAP_H + 50) greenCircles.splice(i, 1);
       }
     }
 
     function advanceStage() {
-      stage++; arrowSpeed = 3 + (stage - 1) * 0.5;
+      stage++; arrowSpeed = diffConfigs[difficulty].arrowSpeedBase + (stage - 1) * 0.5;
       arrows.length = 0; blackCircles.length = 0; explosions.length = 0;
       greenCircles.length = 0; hearts.length = 0; redCircle = null;
       stageStartTime = Date.now(); lastBlackSpawn = Date.now();
@@ -220,7 +264,6 @@
     }
 
     const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
-    const IDLE_LIMIT = 3000;
     let gameStarted = false, lastKeyTime = 0;
 
     document.addEventListener('keydown', (e) => {
@@ -229,6 +272,11 @@
       if (!keys[e.key]) {
         if (!gameStarted) {
           gameStarted = true;
+          const cfg = diffConfigs[difficulty];
+          arrowSpeed = cfg.arrowSpeedBase;
+          circle.maxHp = cfg.maxHp;
+          circle.hp = cfg.maxHp;
+          document.getElementById('diffUI').style.display = 'none';
           stageStartTime = Date.now(); lastBlackSpawn = Date.now();
           lastHeartSpawn = Date.now(); startBgm();
         }
@@ -250,7 +298,7 @@
           arrows.splice(i, 1); continue;
         }
         if (Math.hypot(a.x - circle.x, a.y - circle.y) < CIRCLE_RADIUS) {
-          circle.hp = Math.max(0, circle.hp - 12); arrows.splice(i, 1); continue;
+          circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].arrowDamage); arrows.splice(i, 1); continue;
         }
         if (Math.hypot(a.targetX - a.x, a.targetY - a.y) < arrowSpeed + 1) arrows.splice(i, 1);
       }
@@ -300,7 +348,7 @@
       if (keys.ArrowLeft)  circle.x = Math.max(CIRCLE_RADIUS, circle.x - SPEED);
       if (keys.ArrowRight) circle.x = Math.min(MAP_W - CIRCLE_RADIUS, circle.x + SPEED);
       const now = Date.now();
-      if (gameStarted && !stageClearring && now - lastKeyTime >= IDLE_LIMIT) circle.hp = 0;
+      if (gameStarted && !stageClearring && now - lastKeyTime >= diffConfigs[difficulty].idleLimit) circle.hp = 0;
       if (gameStarted && !stageClearring && now - stageStartTime >= STAGE_DURATION) { stageClearring = true; stageClearAt = now; }
       if (stageClearring && now - stageClearAt >= 2000) advanceStage();
       updateArrows(); updateBlackCircles(); updateGreenCircles(); updateHearts();
@@ -364,19 +412,20 @@
 
       if (gameStarted && !stageClearring) {
         const idle = Date.now() - lastKeyTime;
-        const idleLeft = Math.max(0, (IDLE_LIMIT - idle) / 1000);
+        const idleLeft = Math.max(0, (diffConfigs[difficulty].idleLimit - idle) / 1000);
         ctx.font = 'bold 13px Arial';
         ctx.fillStyle = idleLeft < 1 ? '#ff3333' : '#fff';
         ctx.textAlign = 'right';
         ctx.fillText(`⏱ ${idleLeft.toFixed(1)}s`, MAP_W - 8, 20);
         const stageLeft = Math.max(0, (STAGE_DURATION - (Date.now() - stageStartTime)) / 1000);
+        const diffLabels = { easy:'쉬움', normal:'보통', hard:'어려움', veryhard:'매우어려움' };
+        const diffColors = { easy:'#44cc88', normal:'#4488ff', hard:'#ff4444', veryhard:'#cc00ff' };
         ctx.textAlign = 'left'; ctx.fillStyle = '#fff';
         ctx.fillText(`스테이지 ${stage}`, 8, 20);
         ctx.fillStyle = '#ffe066';
         ctx.fillText(`${stageLeft.toFixed(1)}s 생존`, 8, 38);
-      } else if (!gameStarted) {
-        ctx.font = '16px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.textAlign = 'center';
-        ctx.fillText('방향키를 눌러 시작하세요', MAP_W / 2, MAP_H / 2 + 40);
+        ctx.fillStyle = diffColors[difficulty]; ctx.font = 'bold 12px Arial';
+        ctx.fillText(`[${diffLabels[difficulty]}]`, 8, 56);
       }
 
       if (stageClearring) {
