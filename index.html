@@ -219,7 +219,7 @@
         const b = yellowBullets[i];
         b.x += b.vx; b.y += b.vy;
         if (redCircle && Math.hypot(b.x - redCircle.x, b.y - redCircle.y) < RED_RADIUS + YELLOW_RADIUS) {
-          redCircle.hp -= 2;
+          redCircle.hp -= 4;
           if (redCircle.hp <= 0) { redCircle = null; greenCircles.length = 0; stageClearring = true; stageClearAt = Date.now(); }
           yellowBullets.splice(i, 1); continue;
         }
