@@ -63,6 +63,36 @@
       maxHp: 100,
     };
 
+    const ARROW_SPEED = 3;
+    const MAX_ARROWS = 5;
+    const arrows = [];
+
+    function randomPos() {
+      return {
+        x: Math.random() * MAP_SIZE,
+        y: Math.random() * MAP_SIZE,
+      };
+    }
+
+    function spawnArrow() {
+      const from = randomPos();
+      const to = randomPos();
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const dist = Math.hypot(dx, dy);
+      arrows.push({
+        x: from.x,
+        y: from.y,
+        vx: (dx / dist) * ARROW_SPEED,
+        vy: (dy / dist) * ARROW_SPEED,
+        angle: Math.atan2(dy, dx),
+        targetX: to.x,
+        targetY: to.y,
+      });
+    }
+
+    for (let i = 0; i < MAX_ARROWS; i++) spawnArrow();
+
     const keys = {
       ArrowUp: false,
       ArrowDown: false,
@@ -83,11 +113,56 @@
       }
     });
 
+    function updateArrows() {
+      for (let i = arrows.length - 1; i >= 0; i--) {
+        const a = arrows[i];
+        a.x += a.vx;
+        a.y += a.vy;
+        const dx = a.targetX - a.x;
+        const dy = a.targetY - a.y;
+        if (Math.hypot(dx, dy) < ARROW_SPEED + 1) {
+          arrows.splice(i, 1);
+          spawnArrow();
+        }
+      }
+    }
+
+    function drawArrow(a) {
+      const len = 20;
+      const headLen = 8;
+      const headAngle = Math.PI / 6;
+
+      ctx.save();
+      ctx.translate(a.x, a.y);
+      ctx.rotate(a.angle);
+
+      ctx.strokeStyle = '#c8a000';
+      ctx.fillStyle = '#c8a000';
+      ctx.lineWidth = 2;
+
+      // 화살 몸통
+      ctx.beginPath();
+      ctx.moveTo(-len / 2, 0);
+      ctx.lineTo(len / 2, 0);
+      ctx.stroke();
+
+      // 화살촉
+      ctx.beginPath();
+      ctx.moveTo(len / 2, 0);
+      ctx.lineTo(len / 2 - headLen * Math.cos(-headAngle), headLen * Math.sin(-headAngle));
+      ctx.lineTo(len / 2 - headLen * Math.cos(headAngle), headLen * Math.sin(headAngle));
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
     function update() {
       if (keys.ArrowUp)    circle.y = Math.max(CIRCLE_RADIUS, circle.y - SPEED);
       if (keys.ArrowDown)  circle.y = Math.min(MAP_SIZE - CIRCLE_RADIUS, circle.y + SPEED);
       if (keys.ArrowLeft)  circle.x = Math.max(CIRCLE_RADIUS, circle.x - SPEED);
       if (keys.ArrowRight) circle.x = Math.min(MAP_SIZE - CIRCLE_RADIUS, circle.x + SPEED);
+      updateArrows();
     }
 
     function draw() {
@@ -117,6 +192,9 @@
       const hpColor = hpRatio > 0.5 ? '#00cc44' : hpRatio > 0.25 ? '#ffaa00' : '#ff3333';
       ctx.fillStyle = hpColor;
       ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+
+      // 화살
+      for (const a of arrows) drawArrow(a);
 
       // 체력 수치 텍스트
       ctx.fillStyle = '#fff';
