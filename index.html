@@ -46,43 +46,56 @@
   </div>
 
   <script>
-    // 배경음악 (Web Audio API 칩튠)
+    // 배경음악 (Web Audio API 2성부 게임 BGM)
     let audioCtx = null;
     let bgmPlaying = false;
     let bgmTimeout = null;
 
-    const melody = [
-      [330, 0.18], [294, 0.18], [262, 0.18], [294, 0.18],
-      [330, 0.18], [330, 0.18], [330, 0.36],
-      [294, 0.18], [294, 0.18], [294, 0.36],
-      [330, 0.18], [392, 0.18], [392, 0.36],
-      [330, 0.18], [294, 0.18], [262, 0.18], [294, 0.18],
-      [330, 0.18], [330, 0.18], [330, 0.18], [330, 0.18],
-      [294, 0.18], [294, 0.18], [330, 0.18], [294, 0.18],
-      [262, 0.72],
-    ];
-
-    function playNote(freq, duration, startTime, vol = 0.08) {
+    function playNote(freq, duration, startTime, type = 'sawtooth', vol = 0.06) {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.connect(gain);
       gain.connect(audioCtx.destination);
-      osc.type = 'square';
+      osc.type = type;
       osc.frequency.setValueAtTime(freq, startTime);
       gain.gain.setValueAtTime(vol, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration * 0.9);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration * 0.85);
       osc.start(startTime);
       osc.stop(startTime + duration);
     }
 
     function scheduleBgm() {
       if (!bgmPlaying) return;
-      let t = audioCtx.currentTime;
-      for (const [freq, dur] of melody) {
-        playNote(freq, dur, t);
-        t += dur;
-      }
-      const total = melody.reduce((s, [, d]) => s + d, 0);
+      const E = 60 / 140 / 2;
+      const s = audioCtx.currentTime;
+
+      const mel = [
+        [784,E],[659,E],[523,E],[659,E],[784,E],[880,E],[784,E],[659,E],
+        [698,E],[587,E],[494,E],[587,E],[698,E],[784,E],[698,E],[587,E],
+        [659,E],[784,E],[880,E],[988,E],[1047,E],[988,E],[880,E],[784,E],
+        [659,E],[587,E],[523,E],[587,E],[659,E*2],[523,E*2],
+        [880,E],[880,E],[1047,E],[880,E],[784,E*2],[659,E],[784,E],
+        [880,E],[880,E],[1047,E],[880,E],[784,E],[659,E],[523,E],[659,E],
+        [784,E],[784,E],[988,E],[784,E],[698,E*2],[587,E],[698,E],
+        [784,E],[698,E],[659,E],[587,E],[523,E*4],
+      ];
+      const bas = [
+        [131,E*4],[196,E*4],
+        [174,E*4],[131,E*4],
+        [131,E*4],[196,E*4],
+        [220,E*4],[174,E*4],
+        [220,E*4],[196,E*4],
+        [220,E*4],[131,E*4],
+        [196,E*4],[174,E*4],
+        [131,E*8],
+      ];
+
+      let t = s;
+      for (const [f, d] of mel) { playNote(f, d, t, 'sawtooth', 0.06); t += d; }
+      t = s;
+      for (const [f, d] of bas) { playNote(f, d, t, 'square', 0.04); t += d; }
+
+      const total = mel.reduce((a, [, d]) => a + d, 0);
       bgmTimeout = setTimeout(scheduleBgm, total * 1000 - 100);
     }
 
