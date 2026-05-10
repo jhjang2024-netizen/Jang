@@ -118,6 +118,15 @@
         const a = arrows[i];
         a.x += a.vx;
         a.y += a.vy;
+
+        // 원과 충돌 감지
+        if (Math.hypot(a.x - circle.x, a.y - circle.y) < CIRCLE_RADIUS) {
+          circle.hp = Math.max(0, circle.hp - 17);
+          arrows.splice(i, 1);
+          spawnArrow();
+          continue;
+        }
+
         const dx = a.targetX - a.x;
         const dy = a.targetY - a.y;
         if (Math.hypot(dx, dy) < ARROW_SPEED + 1) {
