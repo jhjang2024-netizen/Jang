@@ -63,7 +63,7 @@
       maxHp: 100,
     };
 
-    const ARROW_SPEED = 3;
+    let arrowSpeed = 3;
     const arrows = [];
 
     const blackCircles = [];
@@ -71,6 +71,16 @@
     const BLACK_RADIUS = CIRCLE_RADIUS / 1.3;
     const EXPLODE_RADIUS = CIRCLE_RADIUS * 2.2;
     const EXPLODE_DELAY = 1500;
+
+    let stage = 1;
+    const STAGE_DURATION = 20000;
+    let stageStartTime = 0;
+    let stageClearAt = 0;
+    let stageClearring = false;
+
+    function stageBlackInterval() { return Math.max(800, 2000 - (stage - 1) * 200); }
+
+    let lastBlackSpawn = 0;
 
     function spawnBlackCircle() {
       blackCircles.push({
@@ -87,7 +97,17 @@
       }
     }
 
-    setInterval(() => { if (circle.hp > 0) spawnBlackCircle(); }, 2000);
+    function advanceStage() {
+      stage++;
+      arrowSpeed = 3 + (stage - 1) * 0.5;
+      arrows.length = 0;
+      blackCircles.length = 0;
+      explosions.length = 0;
+      stageStartTime = Date.now();
+      lastBlackSpawn = Date.now();
+      stageClearring = false;
+      lastKeyTime = Date.now();
+    }
 
     function spawnArrowToward(tx, ty) {
       const edge = Math.floor(Math.random() * 4);
@@ -103,8 +123,8 @@
       arrows.push({
         x: fx,
         y: fy,
-        vx: (dx / dist) * ARROW_SPEED,
-        vy: (dy / dist) * ARROW_SPEED,
+        vx: (dx / dist) * arrowSpeed,
+        vy: (dy / dist) * arrowSpeed,
         angle: Math.atan2(dy, dx),
         targetX: tx,
         targetY: ty,
@@ -126,7 +146,11 @@
       if (!keys.hasOwnProperty(e.key)) return;
       e.preventDefault();
       if (!keys[e.key]) {
-        if (!gameStarted) gameStarted = true;
+        if (!gameStarted) {
+          gameStarted = true;
+          stageStartTime = Date.now();
+          lastBlackSpawn = Date.now();
+        }
         lastKeyTime = Date.now();
         const tx = circle.x;
         const ty = circle.y;
@@ -162,7 +186,7 @@
       }
     }
 
-    const WARN_DIST = ARROW_SPEED * 60 * 1.3; // 1.3초 전 경고 거리
+    const WARN_DIST = 3 * 60 * 1.3; // 1.3초 전 경고 거리
 
     function drawArrow(a) {
       const remaining = Math.hypot(a.targetX - a.x, a.targetY - a.y);
@@ -232,6 +256,10 @@
 
     function updateBlackCircles() {
       const now = Date.now();
+      if (gameStarted && !stageClearring && now - lastBlackSpawn >= stageBlackInterval()) {
+        spawnBlackCircle();
+        lastBlackSpawn = now;
+      }
       for (let i = blackCircles.length - 1; i >= 0; i--) {
         if (now >= blackCircles[i].explodeAt) {
           triggerExplosion(blackCircles[i]);
@@ -251,8 +279,16 @@
       if (keys.ArrowDown)  circle.y = Math.min(MAP_SIZE - CIRCLE_RADIUS, circle.y + SPEED);
       if (keys.ArrowLeft)  circle.x = Math.max(CIRCLE_RADIUS, circle.x - SPEED);
       if (keys.ArrowRight) circle.x = Math.min(MAP_SIZE - CIRCLE_RADIUS, circle.x + SPEED);
-      if (gameStarted && Date.now() - lastKeyTime >= IDLE_LIMIT) {
+      const now = Date.now();
+      if (gameStarted && !stageClearring && now - lastKeyTime >= IDLE_LIMIT) {
         circle.hp = 0;
+      }
+      if (gameStarted && !stageClearring && now - stageStartTime >= STAGE_DURATION) {
+        stageClearring = true;
+        stageClearAt = now;
+      }
+      if (stageClearring && now - stageClearAt >= 2000) {
+        advanceStage();
       }
       updateArrows();
       updateBlackCircles();
@@ -334,20 +370,41 @@
       ctx.textAlign = 'center';
       ctx.fillText(`${circle.hp} / ${circle.maxHp}`, circle.x, barY - 3);
 
-      // 대기 타이머
-      if (gameStarted) {
+      if (gameStarted && !stageClearring) {
+        // 대기 타이머
         const idle = Date.now() - lastKeyTime;
-        const remaining = Math.max(0, (IDLE_LIMIT - idle) / 1000);
-        const danger = remaining < 1;
-        ctx.font = `bold 14px Arial`;
+        const idleLeft = Math.max(0, (IDLE_LIMIT - idle) / 1000);
+        const danger = idleLeft < 1;
+        ctx.font = 'bold 13px Arial';
         ctx.fillStyle = danger ? '#ff3333' : '#fff';
         ctx.textAlign = 'right';
-        ctx.fillText(`⏱ ${remaining.toFixed(1)}s`, MAP_SIZE - 8, 20);
-      } else {
+        ctx.fillText(`⏱ ${idleLeft.toFixed(1)}s`, MAP_SIZE - 8, 20);
+
+        // 스테이지 & 생존 타이머
+        const stageLeft = Math.max(0, (STAGE_DURATION - (Date.now() - stageStartTime)) / 1000);
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(`스테이지 ${stage}`, 8, 20);
+        ctx.fillStyle = '#ffe066';
+        ctx.fillText(`${stageLeft.toFixed(1)}s 생존`, 8, 38);
+      } else if (!gameStarted) {
         ctx.font = '13px Arial';
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
         ctx.textAlign = 'center';
         ctx.fillText('방향키를 눌러 시작하세요', MAP_SIZE / 2, MAP_SIZE / 2 + 40);
+      }
+
+      // 스테이지 클리어 오버레이
+      if (stageClearring) {
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffe066';
+        ctx.font = 'bold 52px Arial';
+        ctx.fillText('스테이지 클리어!', MAP_SIZE / 2, MAP_SIZE / 2 - 10);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText(`스테이지 ${stage + 1} 시작...`, MAP_SIZE / 2, MAP_SIZE / 2 + 40);
       }
     }
 
@@ -368,7 +425,7 @@
     function gameLoop() {
       update();
       draw();
-      if (circle.hp <= 0) {
+      if (circle.hp <= 0 && !stageClearring) {
         drawGameOver();
         return;
       }
