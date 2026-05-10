@@ -127,7 +127,25 @@
       }
     }
 
+    const WARN_DIST = ARROW_SPEED * 60 * 1.3; // 1.3초 전 경고 거리
+
     function drawArrow(a) {
+      const remaining = Math.hypot(a.targetX - a.x, a.targetY - a.y);
+
+      if (remaining < WARN_DIST) {
+        const alpha = 1 - remaining / WARN_DIST;
+        ctx.save();
+        ctx.strokeStyle = `rgba(255, 50, 50, ${0.3 + alpha * 0.7})`;
+        ctx.lineWidth = 3;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(a.targetX, a.targetY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+
       const len = 20;
       const headLen = 8;
       const headAngle = Math.PI / 6;
