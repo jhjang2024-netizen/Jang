@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>게임</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #1a1a2e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+
+    #gameContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #gameCanvas {
+      border: 3px solid #444;
+      display: block;
+    }
+
+    #info {
+      color: #aaa;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+    <div id="info">방향키(↑ ↓ ← →)로 파란 원을 이동하세요</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const MAP_SIZE = 500;
+    const CIRCLE_RADIUS = 20;
+    const SPEED = 4;
+
+    canvas.width = MAP_SIZE;
+    canvas.height = MAP_SIZE;
+
+    const circle = {
+      x: MAP_SIZE / 2,
+      y: MAP_SIZE / 2,
+    };
+
+    const keys = {
+      ArrowUp: false,
+      ArrowDown: false,
+      ArrowLeft: false,
+      ArrowRight: false,
+    };
+
+    document.addEventListener('keydown', (e) => {
+      if (keys.hasOwnProperty(e.key)) {
+        e.preventDefault();
+        keys[e.key] = true;
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (keys.hasOwnProperty(e.key)) {
+        keys[e.key] = false;
+      }
+    });
+
+    function update() {
+      if (keys.ArrowUp)    circle.y = Math.max(CIRCLE_RADIUS, circle.y - SPEED);
+      if (keys.ArrowDown)  circle.y = Math.min(MAP_SIZE - CIRCLE_RADIUS, circle.y + SPEED);
+      if (keys.ArrowLeft)  circle.x = Math.max(CIRCLE_RADIUS, circle.x - SPEED);
+      if (keys.ArrowRight) circle.x = Math.min(MAP_SIZE - CIRCLE_RADIUS, circle.x + SPEED);
+    }
+
+    function draw() {
+      // 회색 정사각형 맵
+      ctx.fillStyle = '#808080';
+      ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+
+      // 파란색 원
+      ctx.beginPath();
+      ctx.arc(circle.x, circle.y, CIRCLE_RADIUS, 0, Math.PI * 2);
+      ctx.fillStyle = '#1e90ff';
+      ctx.fill();
+      ctx.strokeStyle = '#63b3ff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
