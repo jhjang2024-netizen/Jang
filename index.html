@@ -204,10 +204,10 @@
 
     function updateGreenCircles() {
       const now = Date.now();
-      if (stage >= 5 && gameStarted && !stageClearring) {
+      if (stage === 5 && gameStarted && !stageClearring) {
         if (!redCircle) { spawnRedCircle(); lastGreenSpawn = now; }
         if (now - lastGreenSpawn >= 1500) { spawnGreenCircle(); lastGreenSpawn = now; }
-      } else if (stage < 5) { redCircle = null; greenCircles.length = 0; }
+      } else if (stage !== 5) { redCircle = null; greenCircles.length = 0; }
       for (let i = greenCircles.length - 1; i >= 0; i--) {
         const g = greenCircles[i];
         g.x += g.vx; g.y += g.vy;
