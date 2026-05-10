@@ -180,7 +180,7 @@
 
         const dx = a.targetX - a.x;
         const dy = a.targetY - a.y;
-        if (Math.hypot(dx, dy) < ARROW_SPEED + 1) {
+        if (Math.hypot(dx, dy) < arrowSpeed + 1) {
           arrows.splice(i, 1);
         }
       }
