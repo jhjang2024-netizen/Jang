@@ -100,6 +100,11 @@
     const RED_RADIUS = CIRCLE_RADIUS * 4;
     const GREEN_RADIUS = BLACK_RADIUS / 3;
     const RED_MAX_HP = 350;
+
+    const HEART_INTERVAL = 15000;
+    const HEART_HEAL = 15;
+    const hearts = [];
+    let lastHeartSpawn = 0;
     const GREEN_SPEED = 1.8;
     let redCircle = null;
     const greenCircles = [];
@@ -163,11 +168,48 @@
       blackCircles.length = 0;
       explosions.length = 0;
       greenCircles.length = 0;
+      hearts.length = 0;
       redCircle = null;
       stageStartTime = Date.now();
       lastBlackSpawn = Date.now();
+      lastHeartSpawn = Date.now();
       stageClearring = false;
       lastKeyTime = Date.now();
+    }
+
+    function updateHearts() {
+      const now = Date.now();
+      if (gameStarted && !stageClearring && now - lastHeartSpawn >= HEART_INTERVAL) {
+        hearts.push({
+          x: 20 + Math.random() * (MAP_SIZE - 40),
+          y: 20 + Math.random() * (MAP_SIZE - 40),
+        });
+        lastHeartSpawn = now;
+      }
+      for (let i = hearts.length - 1; i >= 0; i--) {
+        if (Math.hypot(hearts[i].x - circle.x, hearts[i].y - circle.y) < CIRCLE_RADIUS + 10) {
+          circle.hp = Math.min(circle.maxHp, circle.hp + HEART_HEAL);
+          hearts.splice(i, 1);
+        }
+      }
+    }
+
+    function drawHeart(hx, hy) {
+      ctx.save();
+      ctx.translate(hx, hy);
+      const s = 10;
+      ctx.fillStyle = '#ff3366';
+      ctx.strokeStyle = '#ffaacc';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, s * 0.35);
+      ctx.bezierCurveTo(0, s * 0.1, -s * 0.5, -s * 0.4, -s, -s * 0.15);
+      ctx.bezierCurveTo(-s * 1.5, s * 0.2, -s * 1.2, s * 0.8, 0, s * 1.2);
+      ctx.bezierCurveTo(s * 1.2, s * 0.8, s * 1.5, s * 0.2, s, -s * 0.15);
+      ctx.bezierCurveTo(s * 0.5, -s * 0.4, 0, s * 0.1, 0, s * 0.35);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
     }
 
     function spawnArrowToward(tx, ty) {
@@ -211,6 +253,7 @@
           gameStarted = true;
           stageStartTime = Date.now();
           lastBlackSpawn = Date.now();
+          lastHeartSpawn = Date.now();
         }
         lastKeyTime = Date.now();
         const tx = circle.x;
@@ -359,6 +402,7 @@
       updateArrows();
       updateBlackCircles();
       updateGreenCircles();
+      updateHearts();
     }
 
     function draw() {
@@ -462,6 +506,9 @@
         ctx.lineWidth = 3;
         ctx.stroke();
       }
+
+      // 하트
+      for (const h of hearts) drawHeart(h.x, h.y);
 
       // 화살
       for (const a of arrows) drawArrow(a);
