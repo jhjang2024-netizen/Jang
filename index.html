@@ -97,8 +97,9 @@
       }
     }
 
-    const RED_RADIUS = 22;
-    const GREEN_RADIUS = 12;
+    const RED_RADIUS = CIRCLE_RADIUS * 4;
+    const GREEN_RADIUS = BLACK_RADIUS / 3;
+    const RED_MAX_HP = 350;
     const GREEN_SPEED = 1.8;
     let redCircle = null;
     const greenCircles = [];
@@ -111,7 +112,7 @@
       else if (side === 1) { x = MAP_SIZE - RED_RADIUS; y = Math.random() * MAP_SIZE; }
       else if (side === 2) { x = Math.random() * MAP_SIZE; y = MAP_SIZE - RED_RADIUS; }
       else { x = RED_RADIUS; y = Math.random() * MAP_SIZE; }
-      redCircle = { x, y };
+      redCircle = { x, y, hp: RED_MAX_HP };
     }
 
     function spawnGreenCircle() {
@@ -231,7 +232,12 @@
         a.x += a.vx;
         a.y += a.vy;
 
-        // 원과 충돌 감지
+        if (redCircle && Math.hypot(a.x - redCircle.x, a.y - redCircle.y) < RED_RADIUS) {
+          redCircle.hp -= 10;
+          if (redCircle.hp <= 0) { redCircle = null; greenCircles.length = 0; }
+          arrows.splice(i, 1);
+          continue;
+        }
         if (Math.hypot(a.x - circle.x, a.y - circle.y) < CIRCLE_RADIUS) {
           circle.hp = Math.max(0, circle.hp - 17);
           arrows.splice(i, 1);
@@ -392,6 +398,19 @@
         ctx.strokeStyle = '#ff6666';
         ctx.lineWidth = 3;
         ctx.stroke();
+
+        // 빨간 원 체력바
+        const rbw = RED_RADIUS * 2;
+        const rbx = redCircle.x - RED_RADIUS;
+        const rby = redCircle.y - RED_RADIUS - 10;
+        ctx.fillStyle = '#333';
+        ctx.fillRect(rbx, rby, rbw, 7);
+        ctx.fillStyle = '#ff4444';
+        ctx.fillRect(rbx, rby, rbw * (redCircle.hp / RED_MAX_HP), 7);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${redCircle.hp} / ${RED_MAX_HP}`, redCircle.x, rby - 2);
       }
 
       // 초록 원들
