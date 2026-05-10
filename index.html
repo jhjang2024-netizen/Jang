@@ -66,6 +66,18 @@
     const ARROW_SPEED = 3;
     const arrows = [];
 
+    const blackCircles = [];
+    const BLACK_RADIUS = 15;
+
+    function spawnBlackCircle() {
+      blackCircles.push({
+        x: BLACK_RADIUS + Math.random() * (MAP_SIZE - BLACK_RADIUS * 2),
+        y: BLACK_RADIUS + Math.random() * (MAP_SIZE - BLACK_RADIUS * 2),
+      });
+    }
+
+    setInterval(() => { if (circle.hp > 0) spawnBlackCircle(); }, 2000);
+
     function spawnArrowToward(tx, ty) {
       const edge = Math.floor(Math.random() * 4);
       let fx, fy;
@@ -236,6 +248,17 @@
       const hpColor = hpRatio > 0.5 ? '#00cc44' : hpRatio > 0.25 ? '#ffaa00' : '#ff3333';
       ctx.fillStyle = hpColor;
       ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+
+      // 검정색 원들
+      for (const bc of blackCircles) {
+        ctx.beginPath();
+        ctx.arc(bc.x, bc.y, BLACK_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = '#111';
+        ctx.fill();
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
 
       // 화살
       for (const a of arrows) drawArrow(a);
