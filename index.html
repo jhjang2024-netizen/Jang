@@ -93,6 +93,12 @@
       scheduleBgm();
     }
 
+    function stopBgm() {
+      bgmPlaying = false;
+      clearTimeout(bgmTimeout);
+      if (audioCtx) audioCtx.suspend();
+    }
+
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -623,6 +629,7 @@
       update();
       draw();
       if (circle.hp <= 0 && !stageClearring) {
+        stopBgm();
         drawGameOver();
         return;
       }
