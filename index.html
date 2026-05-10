@@ -97,12 +97,72 @@
       }
     }
 
+    const RED_RADIUS = 22;
+    const GREEN_RADIUS = 12;
+    const GREEN_SPEED = 1.8;
+    let redCircle = null;
+    const greenCircles = [];
+    let lastGreenSpawn = 0;
+
+    function spawnRedCircle() {
+      const side = Math.floor(Math.random() * 4);
+      let x, y;
+      if (side === 0) { x = Math.random() * MAP_SIZE; y = RED_RADIUS; }
+      else if (side === 1) { x = MAP_SIZE - RED_RADIUS; y = Math.random() * MAP_SIZE; }
+      else if (side === 2) { x = Math.random() * MAP_SIZE; y = MAP_SIZE - RED_RADIUS; }
+      else { x = RED_RADIUS; y = Math.random() * MAP_SIZE; }
+      redCircle = { x, y };
+    }
+
+    function spawnGreenCircle() {
+      if (!redCircle) return;
+      const dx = circle.x - redCircle.x;
+      const dy = circle.y - redCircle.y;
+      const dist = Math.hypot(dx, dy);
+      greenCircles.push({
+        x: redCircle.x,
+        y: redCircle.y,
+        vx: (dx / dist) * GREEN_SPEED,
+        vy: (dy / dist) * GREEN_SPEED,
+      });
+    }
+
+    function updateGreenCircles() {
+      const now = Date.now();
+      if (stage >= 5 && gameStarted && !stageClearring) {
+        if (!redCircle) { spawnRedCircle(); lastGreenSpawn = now; }
+        if (now - lastGreenSpawn >= 1500) {
+          spawnGreenCircle();
+          lastGreenSpawn = now;
+        }
+      } else if (stage < 5) {
+        redCircle = null;
+        greenCircles.length = 0;
+      }
+
+      for (let i = greenCircles.length - 1; i >= 0; i--) {
+        const g = greenCircles[i];
+        g.x += g.vx;
+        g.y += g.vy;
+        if (Math.hypot(g.x - circle.x, g.y - circle.y) < CIRCLE_RADIUS + GREEN_RADIUS) {
+          circle.hp = Math.max(0, circle.hp - 12);
+          greenCircles.splice(i, 1);
+          continue;
+        }
+        if (g.x < -50 || g.x > MAP_SIZE + 50 || g.y < -50 || g.y > MAP_SIZE + 50) {
+          greenCircles.splice(i, 1);
+        }
+      }
+    }
+
     function advanceStage() {
       stage++;
       arrowSpeed = 3 + (stage - 1) * 0.5;
       arrows.length = 0;
       blackCircles.length = 0;
       explosions.length = 0;
+      greenCircles.length = 0;
+      redCircle = null;
       stageStartTime = Date.now();
       lastBlackSpawn = Date.now();
       stageClearring = false;
@@ -292,6 +352,7 @@
       }
       updateArrows();
       updateBlackCircles();
+      updateGreenCircles();
     }
 
     function draw() {
@@ -321,6 +382,28 @@
       const hpColor = hpRatio > 0.5 ? '#00cc44' : hpRatio > 0.25 ? '#ffaa00' : '#ff3333';
       ctx.fillStyle = hpColor;
       ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+
+      // 빨간 원 (5스테이지+)
+      if (redCircle) {
+        ctx.beginPath();
+        ctx.arc(redCircle.x, redCircle.y, RED_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = '#cc1111';
+        ctx.fill();
+        ctx.strokeStyle = '#ff6666';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      // 초록 원들
+      for (const g of greenCircles) {
+        ctx.beginPath();
+        ctx.arc(g.x, g.y, GREEN_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = '#22cc44';
+        ctx.fill();
+        ctx.strokeStyle = '#88ffaa';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
 
       // 검정색 원들
       const now = Date.now();
