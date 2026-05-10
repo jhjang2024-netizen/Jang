@@ -67,13 +67,24 @@
     const arrows = [];
 
     const blackCircles = [];
+    const explosions = [];
     const BLACK_RADIUS = 15;
+    const EXPLODE_RADIUS = 50;
+    const EXPLODE_DELAY = 1500;
 
     function spawnBlackCircle() {
       blackCircles.push({
         x: BLACK_RADIUS + Math.random() * (MAP_SIZE - BLACK_RADIUS * 2),
         y: BLACK_RADIUS + Math.random() * (MAP_SIZE - BLACK_RADIUS * 2),
+        explodeAt: Date.now() + EXPLODE_DELAY,
       });
+    }
+
+    function triggerExplosion(bc) {
+      explosions.push({ x: bc.x, y: bc.y, r: BLACK_RADIUS, maxR: EXPLODE_RADIUS, alpha: 1 });
+      if (Math.hypot(circle.x - bc.x, circle.y - bc.y) < EXPLODE_RADIUS + CIRCLE_RADIUS) {
+        circle.hp = Math.max(0, circle.hp - 25);
+      }
     }
 
     setInterval(() => { if (circle.hp > 0) spawnBlackCircle(); }, 2000);
@@ -213,12 +224,29 @@
       ctx.restore();
     }
 
+    function updateBlackCircles() {
+      const now = Date.now();
+      for (let i = blackCircles.length - 1; i >= 0; i--) {
+        if (now >= blackCircles[i].explodeAt) {
+          triggerExplosion(blackCircles[i]);
+          blackCircles.splice(i, 1);
+        }
+      }
+      for (let i = explosions.length - 1; i >= 0; i--) {
+        const ex = explosions[i];
+        ex.r += (ex.maxR - ex.r) * 0.15;
+        ex.alpha -= 0.04;
+        if (ex.alpha <= 0) explosions.splice(i, 1);
+      }
+    }
+
     function update() {
       if (keys.ArrowUp)    circle.y = Math.max(CIRCLE_RADIUS, circle.y - SPEED);
       if (keys.ArrowDown)  circle.y = Math.min(MAP_SIZE - CIRCLE_RADIUS, circle.y + SPEED);
       if (keys.ArrowLeft)  circle.x = Math.max(CIRCLE_RADIUS, circle.x - SPEED);
       if (keys.ArrowRight) circle.x = Math.min(MAP_SIZE - CIRCLE_RADIUS, circle.x + SPEED);
       updateArrows();
+      updateBlackCircles();
     }
 
     function draw() {
@@ -250,13 +278,41 @@
       ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
 
       // 검정색 원들
+      const now = Date.now();
       for (const bc of blackCircles) {
+        const remaining = bc.explodeAt - now;
+        const warn = Math.max(0, 1 - remaining / EXPLODE_DELAY);
+
+        // 폭발 예고 범위
+        ctx.beginPath();
+        ctx.arc(bc.x, bc.y, EXPLODE_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 80, 0, ${warn * 0.25})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(255, 80, 0, ${0.3 + warn * 0.7})`;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 검정 원 (깜빡임)
+        const blink = remaining < 500 && Math.floor(remaining / 100) % 2 === 0;
         ctx.beginPath();
         ctx.arc(bc.x, bc.y, BLACK_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = '#111';
+        ctx.fillStyle = blink ? '#ff4400' : '#111';
         ctx.fill();
         ctx.strokeStyle = '#444';
         ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // 폭발 이펙트
+      for (const ex of explosions) {
+        ctx.beginPath();
+        ctx.arc(ex.x, ex.y, ex.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 120, 0, ${ex.alpha * 0.5})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(255, 200, 0, ${ex.alpha})`;
+        ctx.lineWidth = 3;
         ctx.stroke();
       }
 
