@@ -318,8 +318,6 @@
         const a = arrows[i];
         a.x += a.vx; a.y += a.vy;
         if (redCircle && Math.hypot(a.x - redCircle.x, a.y - redCircle.y) < RED_RADIUS) {
-          redCircle.hp -= 10;
-          if (redCircle.hp <= 0) { redCircle = null; greenCircles.length = 0; if (stage === 5) { stageClearring = true; stageClearAt = Date.now(); } }
           arrows.splice(i, 1); continue;
         }
         if (Math.hypot(a.x - circle.x, a.y - circle.y) < CIRCLE_RADIUS) {
