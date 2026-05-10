@@ -122,7 +122,6 @@
         if (Math.hypot(a.x - circle.x, a.y - circle.y) < CIRCLE_RADIUS) {
           circle.hp = Math.max(0, circle.hp - 17);
           arrows.splice(i, 1);
-          spawnArrow();
           continue;
         }
 
