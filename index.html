@@ -5,45 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>게임</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      background-color: #1a1a2e;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      font-family: Arial, sans-serif;
-    }
-
-    #gameContainer {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-    }
-
-    #gameCanvas {
-      border: 3px solid #444;
-      display: block;
-    }
-
-    #info {
-      color: #aaa;
-      font-size: 14px;
-      text-align: center;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; }
+    #gameCanvas { display: block; }
   </style>
 </head>
 <body>
-  <div id="gameContainer">
-    <canvas id="gameCanvas"></canvas>
-    <div id="info">방향키(↑ ↓ ← →)로 파란 원을 이동하세요</div>
-  </div>
+  <canvas id="gameCanvas"></canvas>
 
   <script>
     // 배경음악 (Web Audio API 2성부 게임 BGM)
@@ -68,7 +36,6 @@
       if (!bgmPlaying) return;
       const E = 60 / 140 / 2;
       const s = audioCtx.currentTime;
-
       const mel = [
         [784,E],[659,E],[523,E],[659,E],[784,E],[880,E],[784,E],[659,E],
         [698,E],[587,E],[494,E],[587,E],[698,E],[784,E],[698,E],[587,E],
@@ -80,21 +47,15 @@
         [784,E],[698,E],[659,E],[587,E],[523,E*4],
       ];
       const bas = [
-        [131,E*4],[196,E*4],
-        [174,E*4],[131,E*4],
-        [131,E*4],[196,E*4],
-        [220,E*4],[174,E*4],
-        [220,E*4],[196,E*4],
-        [220,E*4],[131,E*4],
-        [196,E*4],[174,E*4],
-        [131,E*8],
+        [131,E*4],[196,E*4],[174,E*4],[131,E*4],
+        [131,E*4],[196,E*4],[220,E*4],[174,E*4],
+        [220,E*4],[196,E*4],[220,E*4],[131,E*4],
+        [196,E*4],[174,E*4],[131,E*8],
       ];
-
       let t = s;
       for (const [f, d] of mel) { playNote(f, d, t, 'sawtooth', 0.06); t += d; }
       t = s;
       for (const [f, d] of bas) { playNote(f, d, t, 'square', 0.04); t += d; }
-
       const total = mel.reduce((a, [, d]) => a + d, 0);
       bgmTimeout = setTimeout(scheduleBgm, total * 1000 - 100);
     }
@@ -115,23 +76,32 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    const MAP_SIZE = 500;
+    let MAP_W = window.innerWidth;
+    let MAP_H = window.innerHeight;
+    canvas.width = MAP_W;
+    canvas.height = MAP_H;
+
+    window.addEventListener('resize', () => {
+      MAP_W = window.innerWidth;
+      MAP_H = window.innerHeight;
+      canvas.width = MAP_W;
+      canvas.height = MAP_H;
+      circle.x = Math.min(Math.max(circle.x, CIRCLE_RADIUS), MAP_W - CIRCLE_RADIUS);
+      circle.y = Math.min(Math.max(circle.y, CIRCLE_RADIUS), MAP_H - CIRCLE_RADIUS);
+    });
+
     const CIRCLE_RADIUS = 20;
     const SPEED = 4;
 
-    canvas.width = MAP_SIZE;
-    canvas.height = MAP_SIZE;
-
     const circle = {
-      x: MAP_SIZE / 2,
-      y: MAP_SIZE / 2,
+      x: MAP_W / 2,
+      y: MAP_H / 2,
       hp: 100,
       maxHp: 100,
     };
 
     let arrowSpeed = 3;
     const arrows = [];
-
     const blackCircles = [];
     const explosions = [];
     const BLACK_RADIUS = CIRCLE_RADIUS / 1.3;
@@ -140,33 +110,28 @@
 
     let stage = 1;
     const STAGE_DURATION = 20000;
-    let stageStartTime = 0;
-    let stageClearAt = 0;
-    let stageClearring = false;
+    let stageStartTime = 0, stageClearAt = 0, stageClearring = false;
 
     function stageBlackInterval() { return Math.max(800, 2000 - (stage - 1) * 200); }
-
     let lastBlackSpawn = 0;
 
     function spawnBlackCircle() {
       blackCircles.push({
-        x: BLACK_RADIUS + Math.random() * (MAP_SIZE - BLACK_RADIUS * 2),
-        y: BLACK_RADIUS + Math.random() * (MAP_SIZE - BLACK_RADIUS * 2),
+        x: BLACK_RADIUS + Math.random() * (MAP_W - BLACK_RADIUS * 2),
+        y: BLACK_RADIUS + Math.random() * (MAP_H - BLACK_RADIUS * 2),
         explodeAt: Date.now() + EXPLODE_DELAY,
       });
     }
 
     function triggerExplosion(bc) {
       explosions.push({ x: bc.x, y: bc.y, r: BLACK_RADIUS, maxR: EXPLODE_RADIUS, alpha: 1 });
-      if (Math.hypot(circle.x - bc.x, circle.y - bc.y) < EXPLODE_RADIUS + CIRCLE_RADIUS) {
+      if (Math.hypot(circle.x - bc.x, circle.y - bc.y) < EXPLODE_RADIUS + CIRCLE_RADIUS)
         circle.hp = Math.max(0, circle.hp - 16);
-      }
     }
 
     const RED_RADIUS = CIRCLE_RADIUS * 4;
     const GREEN_RADIUS = BLACK_RADIUS / 3;
     const RED_MAX_HP = 350;
-
     const HEART_INTERVAL = 15000;
     const HEART_HEAL = 23;
     const hearts = [];
@@ -179,137 +144,84 @@
     function spawnRedCircle() {
       const side = Math.floor(Math.random() * 4);
       let x, y;
-      if (side === 0) { x = Math.random() * MAP_SIZE; y = RED_RADIUS; }
-      else if (side === 1) { x = MAP_SIZE - RED_RADIUS; y = Math.random() * MAP_SIZE; }
-      else if (side === 2) { x = Math.random() * MAP_SIZE; y = MAP_SIZE - RED_RADIUS; }
-      else { x = RED_RADIUS; y = Math.random() * MAP_SIZE; }
+      if (side === 0) { x = Math.random() * MAP_W; y = RED_RADIUS; }
+      else if (side === 1) { x = MAP_W - RED_RADIUS; y = Math.random() * MAP_H; }
+      else if (side === 2) { x = Math.random() * MAP_W; y = MAP_H - RED_RADIUS; }
+      else { x = RED_RADIUS; y = Math.random() * MAP_H; }
       redCircle = { x, y, hp: RED_MAX_HP };
     }
 
     function spawnGreenCircle() {
       if (!redCircle) return;
-      const dx = circle.x - redCircle.x;
-      const dy = circle.y - redCircle.y;
+      const dx = circle.x - redCircle.x, dy = circle.y - redCircle.y;
       const dist = Math.hypot(dx, dy);
-      greenCircles.push({
-        x: redCircle.x,
-        y: redCircle.y,
-        vx: (dx / dist) * GREEN_SPEED,
-        vy: (dy / dist) * GREEN_SPEED,
-      });
+      greenCircles.push({ x: redCircle.x, y: redCircle.y, vx: (dx/dist)*GREEN_SPEED, vy: (dy/dist)*GREEN_SPEED });
     }
 
     function updateGreenCircles() {
       const now = Date.now();
       if (stage >= 5 && gameStarted && !stageClearring) {
         if (!redCircle) { spawnRedCircle(); lastGreenSpawn = now; }
-        if (now - lastGreenSpawn >= 1500) {
-          spawnGreenCircle();
-          lastGreenSpawn = now;
-        }
-      } else if (stage < 5) {
-        redCircle = null;
-        greenCircles.length = 0;
-      }
-
+        if (now - lastGreenSpawn >= 1500) { spawnGreenCircle(); lastGreenSpawn = now; }
+      } else if (stage < 5) { redCircle = null; greenCircles.length = 0; }
       for (let i = greenCircles.length - 1; i >= 0; i--) {
         const g = greenCircles[i];
-        g.x += g.vx;
-        g.y += g.vy;
+        g.x += g.vx; g.y += g.vy;
         if (Math.hypot(g.x - circle.x, g.y - circle.y) < CIRCLE_RADIUS + GREEN_RADIUS) {
-          circle.hp = Math.max(0, circle.hp - 12);
-          greenCircles.splice(i, 1);
-          continue;
+          circle.hp = Math.max(0, circle.hp - 12); greenCircles.splice(i, 1); continue;
         }
-        if (g.x < -50 || g.x > MAP_SIZE + 50 || g.y < -50 || g.y > MAP_SIZE + 50) {
-          greenCircles.splice(i, 1);
-        }
+        if (g.x < -50 || g.x > MAP_W + 50 || g.y < -50 || g.y > MAP_H + 50) greenCircles.splice(i, 1);
       }
     }
 
     function advanceStage() {
-      stage++;
-      arrowSpeed = 3 + (stage - 1) * 0.5;
-      arrows.length = 0;
-      blackCircles.length = 0;
-      explosions.length = 0;
-      greenCircles.length = 0;
-      hearts.length = 0;
-      redCircle = null;
-      stageStartTime = Date.now();
-      lastBlackSpawn = Date.now();
-      lastHeartSpawn = Date.now();
-      stageClearring = false;
-      lastKeyTime = Date.now();
+      stage++; arrowSpeed = 3 + (stage - 1) * 0.5;
+      arrows.length = 0; blackCircles.length = 0; explosions.length = 0;
+      greenCircles.length = 0; hearts.length = 0; redCircle = null;
+      stageStartTime = Date.now(); lastBlackSpawn = Date.now();
+      lastHeartSpawn = Date.now(); stageClearring = false; lastKeyTime = Date.now();
     }
 
     function updateHearts() {
       const now = Date.now();
       if (gameStarted && !stageClearring && now - lastHeartSpawn >= HEART_INTERVAL) {
-        hearts.push({
-          x: 20 + Math.random() * (MAP_SIZE - 40),
-          y: 20 + Math.random() * (MAP_SIZE - 40),
-        });
+        hearts.push({ x: 20 + Math.random() * (MAP_W - 40), y: 20 + Math.random() * (MAP_H - 40) });
         lastHeartSpawn = now;
       }
       for (let i = hearts.length - 1; i >= 0; i--) {
         if (Math.hypot(hearts[i].x - circle.x, hearts[i].y - circle.y) < CIRCLE_RADIUS + 10) {
-          circle.hp = Math.min(circle.maxHp, circle.hp + HEART_HEAL);
-          hearts.splice(i, 1);
+          circle.hp = Math.min(circle.maxHp, circle.hp + HEART_HEAL); hearts.splice(i, 1);
         }
       }
     }
 
     function drawHeart(hx, hy) {
-      ctx.save();
-      ctx.translate(hx, hy);
+      ctx.save(); ctx.translate(hx, hy);
       const s = 10;
-      ctx.fillStyle = '#ff3366';
-      ctx.strokeStyle = '#ffaacc';
-      ctx.lineWidth = 1.5;
+      ctx.fillStyle = '#ff3366'; ctx.strokeStyle = '#ffaacc'; ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(0, s * 0.35);
       ctx.bezierCurveTo(0, s * 0.1, -s * 0.5, -s * 0.4, -s, -s * 0.15);
       ctx.bezierCurveTo(-s * 1.5, s * 0.2, -s * 1.2, s * 0.8, 0, s * 1.2);
       ctx.bezierCurveTo(s * 1.2, s * 0.8, s * 1.5, s * 0.2, s, -s * 0.15);
       ctx.bezierCurveTo(s * 0.5, -s * 0.4, 0, s * 0.1, 0, s * 0.35);
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
+      ctx.fill(); ctx.stroke(); ctx.restore();
     }
 
     function spawnArrowToward(tx, ty) {
       const edge = Math.floor(Math.random() * 4);
       let fx, fy;
-      if (edge === 0) { fx = Math.random() * MAP_SIZE; fy = 0; }
-      else if (edge === 1) { fx = MAP_SIZE; fy = Math.random() * MAP_SIZE; }
-      else if (edge === 2) { fx = Math.random() * MAP_SIZE; fy = MAP_SIZE; }
-      else { fx = 0; fy = Math.random() * MAP_SIZE; }
-
-      const dx = tx - fx;
-      const dy = ty - fy;
-      const dist = Math.hypot(dx, dy);
-      arrows.push({
-        x: fx,
-        y: fy,
-        vx: (dx / dist) * arrowSpeed,
-        vy: (dy / dist) * arrowSpeed,
-        angle: Math.atan2(dy, dx),
-        targetX: tx,
-        targetY: ty,
-      });
+      if (edge === 0) { fx = Math.random() * MAP_W; fy = 0; }
+      else if (edge === 1) { fx = MAP_W; fy = Math.random() * MAP_H; }
+      else if (edge === 2) { fx = Math.random() * MAP_W; fy = MAP_H; }
+      else { fx = 0; fy = Math.random() * MAP_H; }
+      const dx = tx - fx, dy = ty - fy, dist = Math.hypot(dx, dy);
+      arrows.push({ x: fx, y: fy, vx: (dx/dist)*arrowSpeed, vy: (dy/dist)*arrowSpeed, angle: Math.atan2(dy, dx), targetX: tx, targetY: ty });
     }
 
-    const keys = {
-      ArrowUp: false,
-      ArrowDown: false,
-      ArrowLeft: false,
-      ArrowRight: false,
-    };
-
+    const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
     const IDLE_LIMIT = 3000;
-    let gameStarted = false;
-    let lastKeyTime = 0;
+    let gameStarted = false, lastKeyTime = 0;
 
     document.addEventListener('keydown', (e) => {
       if (!keys.hasOwnProperty(e.key)) return;
@@ -317,335 +229,176 @@
       if (!keys[e.key]) {
         if (!gameStarted) {
           gameStarted = true;
-          stageStartTime = Date.now();
-          lastBlackSpawn = Date.now();
-          lastHeartSpawn = Date.now();
-          startBgm();
+          stageStartTime = Date.now(); lastBlackSpawn = Date.now();
+          lastHeartSpawn = Date.now(); startBgm();
         }
         lastKeyTime = Date.now();
-        const tx = circle.x;
-        const ty = circle.y;
+        const tx = circle.x, ty = circle.y;
         setTimeout(() => { if (circle.hp > 0) spawnArrowToward(tx, ty); }, 500);
       }
       keys[e.key] = true;
     });
-
-    document.addEventListener('keyup', (e) => {
-      if (keys.hasOwnProperty(e.key)) {
-        keys[e.key] = false;
-      }
-    });
+    document.addEventListener('keyup', (e) => { if (keys.hasOwnProperty(e.key)) keys[e.key] = false; });
 
     function updateArrows() {
       for (let i = arrows.length - 1; i >= 0; i--) {
         const a = arrows[i];
-        a.x += a.vx;
-        a.y += a.vy;
-
+        a.x += a.vx; a.y += a.vy;
         if (redCircle && Math.hypot(a.x - redCircle.x, a.y - redCircle.y) < RED_RADIUS) {
           redCircle.hp -= 10;
           if (redCircle.hp <= 0) { redCircle = null; greenCircles.length = 0; }
-          arrows.splice(i, 1);
-          continue;
+          arrows.splice(i, 1); continue;
         }
         if (Math.hypot(a.x - circle.x, a.y - circle.y) < CIRCLE_RADIUS) {
-          circle.hp = Math.max(0, circle.hp - 12);
-          arrows.splice(i, 1);
-          continue;
+          circle.hp = Math.max(0, circle.hp - 12); arrows.splice(i, 1); continue;
         }
-
-        const dx = a.targetX - a.x;
-        const dy = a.targetY - a.y;
-        if (Math.hypot(dx, dy) < arrowSpeed + 1) {
-          arrows.splice(i, 1);
-        }
+        if (Math.hypot(a.targetX - a.x, a.targetY - a.y) < arrowSpeed + 1) arrows.splice(i, 1);
       }
     }
 
-    const WARN_DIST = 3 * 60 * 1.3; // 1.3초 전 경고 거리
+    const WARN_DIST = 3 * 60 * 1.3;
 
     function drawArrow(a) {
       const remaining = Math.hypot(a.targetX - a.x, a.targetY - a.y);
-
       if (remaining < WARN_DIST) {
         const alpha = 1 - remaining / WARN_DIST;
         ctx.save();
-        ctx.strokeStyle = `rgba(255, 50, 50, ${0.3 + alpha * 0.7})`;
-        ctx.lineWidth = 3;
-        ctx.setLineDash([6, 4]);
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(a.targetX, a.targetY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.restore();
+        ctx.strokeStyle = `rgba(255,50,50,${0.3 + alpha * 0.7})`;
+        ctx.lineWidth = 3; ctx.setLineDash([6, 4]);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(a.targetX, a.targetY); ctx.stroke();
+        ctx.setLineDash([]); ctx.restore();
       }
-
-      ctx.save();
-      ctx.translate(a.x, a.y);
-      ctx.rotate(a.angle);
-
-      // 화살대
-      ctx.strokeStyle = '#8B5E3C';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(-18, 0);
-      ctx.lineTo(14, 0);
-      ctx.stroke();
-
-      // 화살촉 (금속)
-      ctx.fillStyle = '#aaa';
-      ctx.strokeStyle = '#888';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(22, 0);
-      ctx.lineTo(14, -4);
-      ctx.lineTo(16, 0);
-      ctx.lineTo(14, 4);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // 깃털 (왼쪽 위)
-      ctx.fillStyle = '#e8e8c0';
-      ctx.strokeStyle = '#bbb89a';
-      ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      ctx.moveTo(-18, 0);
-      ctx.lineTo(-10, -6);
-      ctx.lineTo(-8, 0);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // 깃털 (왼쪽 아래)
-      ctx.beginPath();
-      ctx.moveTo(-18, 0);
-      ctx.lineTo(-10, 6);
-      ctx.lineTo(-8, 0);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
+      ctx.save(); ctx.translate(a.x, a.y); ctx.rotate(a.angle);
+      ctx.strokeStyle = '#8B5E3C'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(14, 0); ctx.stroke();
+      ctx.fillStyle = '#aaa'; ctx.strokeStyle = '#888'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(22,0); ctx.lineTo(14,-4); ctx.lineTo(16,0); ctx.lineTo(14,4); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#e8e8c0'; ctx.strokeStyle = '#bbb89a'; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(-18,0); ctx.lineTo(-10,-6); ctx.lineTo(-8,0); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-18,0); ctx.lineTo(-10,6); ctx.lineTo(-8,0); ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.restore();
     }
 
     function updateBlackCircles() {
       const now = Date.now();
       if (gameStarted && !stageClearring && now - lastBlackSpawn >= stageBlackInterval()) {
-        spawnBlackCircle();
-        lastBlackSpawn = now;
+        spawnBlackCircle(); lastBlackSpawn = now;
       }
       for (let i = blackCircles.length - 1; i >= 0; i--) {
-        if (now >= blackCircles[i].explodeAt) {
-          triggerExplosion(blackCircles[i]);
-          blackCircles.splice(i, 1);
-        }
+        if (now >= blackCircles[i].explodeAt) { triggerExplosion(blackCircles[i]); blackCircles.splice(i, 1); }
       }
       for (let i = explosions.length - 1; i >= 0; i--) {
         const ex = explosions[i];
-        ex.r += (ex.maxR - ex.r) * 0.15;
-        ex.alpha -= 0.04;
+        ex.r += (ex.maxR - ex.r) * 0.15; ex.alpha -= 0.04;
         if (ex.alpha <= 0) explosions.splice(i, 1);
       }
     }
 
     function update() {
       if (keys.ArrowUp)    circle.y = Math.max(CIRCLE_RADIUS, circle.y - SPEED);
-      if (keys.ArrowDown)  circle.y = Math.min(MAP_SIZE - CIRCLE_RADIUS, circle.y + SPEED);
+      if (keys.ArrowDown)  circle.y = Math.min(MAP_H - CIRCLE_RADIUS, circle.y + SPEED);
       if (keys.ArrowLeft)  circle.x = Math.max(CIRCLE_RADIUS, circle.x - SPEED);
-      if (keys.ArrowRight) circle.x = Math.min(MAP_SIZE - CIRCLE_RADIUS, circle.x + SPEED);
+      if (keys.ArrowRight) circle.x = Math.min(MAP_W - CIRCLE_RADIUS, circle.x + SPEED);
       const now = Date.now();
-      if (gameStarted && !stageClearring && now - lastKeyTime >= IDLE_LIMIT) {
-        circle.hp = 0;
-      }
-      if (gameStarted && !stageClearring && now - stageStartTime >= STAGE_DURATION) {
-        stageClearring = true;
-        stageClearAt = now;
-      }
-      if (stageClearring && now - stageClearAt >= 2000) {
-        advanceStage();
-      }
-      updateArrows();
-      updateBlackCircles();
-      updateGreenCircles();
-      updateHearts();
+      if (gameStarted && !stageClearring && now - lastKeyTime >= IDLE_LIMIT) circle.hp = 0;
+      if (gameStarted && !stageClearring && now - stageStartTime >= STAGE_DURATION) { stageClearring = true; stageClearAt = now; }
+      if (stageClearring && now - stageClearAt >= 2000) advanceStage();
+      updateArrows(); updateBlackCircles(); updateGreenCircles(); updateHearts();
     }
 
     function draw() {
-      // 회색 정사각형 맵
       ctx.fillStyle = '#808080';
-      ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+      ctx.fillRect(0, 0, MAP_W, MAP_H);
 
-      // 파란색 원
-      ctx.beginPath();
-      ctx.arc(circle.x, circle.y, CIRCLE_RADIUS, 0, Math.PI * 2);
-      ctx.fillStyle = '#1e90ff';
-      ctx.fill();
-      ctx.strokeStyle = '#63b3ff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.beginPath(); ctx.arc(circle.x, circle.y, CIRCLE_RADIUS, 0, Math.PI * 2);
+      ctx.fillStyle = '#1e90ff'; ctx.fill();
+      ctx.strokeStyle = '#63b3ff'; ctx.lineWidth = 2; ctx.stroke();
 
-      // 체력바 배경
-      const barWidth = CIRCLE_RADIUS * 2 + 10;
-      const barHeight = 6;
-      const barX = circle.x - barWidth / 2;
-      const barY = circle.y - CIRCLE_RADIUS - 12;
-      ctx.fillStyle = '#333';
-      ctx.fillRect(barX, barY, barWidth, barHeight);
-
-      // 체력바
+      const barWidth = CIRCLE_RADIUS * 2 + 10, barHeight = 6;
+      const barX = circle.x - barWidth / 2, barY = circle.y - CIRCLE_RADIUS - 12;
+      ctx.fillStyle = '#333'; ctx.fillRect(barX, barY, barWidth, barHeight);
       const hpRatio = circle.hp / circle.maxHp;
-      const hpColor = hpRatio > 0.5 ? '#00cc44' : hpRatio > 0.25 ? '#ffaa00' : '#ff3333';
-      ctx.fillStyle = hpColor;
+      ctx.fillStyle = hpRatio > 0.5 ? '#00cc44' : hpRatio > 0.25 ? '#ffaa00' : '#ff3333';
       ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
 
-      // 빨간 원 (5스테이지+)
       if (redCircle) {
-        ctx.beginPath();
-        ctx.arc(redCircle.x, redCircle.y, RED_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = '#cc1111';
-        ctx.fill();
-        ctx.strokeStyle = '#ff6666';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        // 빨간 원 체력바
-        const rbw = RED_RADIUS * 2;
-        const rbx = redCircle.x - RED_RADIUS;
-        const rby = redCircle.y - RED_RADIUS - 10;
-        ctx.fillStyle = '#333';
-        ctx.fillRect(rbx, rby, rbw, 7);
-        ctx.fillStyle = '#ff4444';
-        ctx.fillRect(rbx, rby, rbw * (redCircle.hp / RED_MAX_HP), 7);
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 10px Arial';
-        ctx.textAlign = 'center';
+        ctx.beginPath(); ctx.arc(redCircle.x, redCircle.y, RED_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = '#cc1111'; ctx.fill(); ctx.strokeStyle = '#ff6666'; ctx.lineWidth = 3; ctx.stroke();
+        const rbw = RED_RADIUS * 2, rbx = redCircle.x - RED_RADIUS, rby = redCircle.y - RED_RADIUS - 10;
+        ctx.fillStyle = '#333'; ctx.fillRect(rbx, rby, rbw, 7);
+        ctx.fillStyle = '#ff4444'; ctx.fillRect(rbx, rby, rbw * (redCircle.hp / RED_MAX_HP), 7);
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center';
         ctx.fillText(`${redCircle.hp} / ${RED_MAX_HP}`, redCircle.x, rby - 2);
       }
 
-      // 초록 원들
       for (const g of greenCircles) {
-        ctx.beginPath();
-        ctx.arc(g.x, g.y, GREEN_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = '#22cc44';
-        ctx.fill();
-        ctx.strokeStyle = '#88ffaa';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        ctx.beginPath(); ctx.arc(g.x, g.y, GREEN_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = '#22cc44'; ctx.fill(); ctx.strokeStyle = '#88ffaa'; ctx.lineWidth = 2; ctx.stroke();
       }
 
-      // 검정색 원들
       const now = Date.now();
       for (const bc of blackCircles) {
         const remaining = bc.explodeAt - now;
         const warn = Math.max(0, 1 - remaining / EXPLODE_DELAY);
-
-        // 폭발 예고 범위
-        ctx.beginPath();
-        ctx.arc(bc.x, bc.y, EXPLODE_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 80, 0, ${warn * 0.25})`;
-        ctx.fill();
-        ctx.strokeStyle = `rgba(255, 80, 0, ${0.3 + warn * 0.7})`;
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // 검정 원 (깜빡임)
+        ctx.beginPath(); ctx.arc(bc.x, bc.y, EXPLODE_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,80,0,${warn*0.25})`; ctx.fill();
+        ctx.strokeStyle = `rgba(255,80,0,${0.3+warn*0.7})`; ctx.lineWidth = 2;
+        ctx.setLineDash([5,4]); ctx.stroke(); ctx.setLineDash([]);
         const blink = remaining < 500 && Math.floor(remaining / 100) % 2 === 0;
-        ctx.beginPath();
-        ctx.arc(bc.x, bc.y, BLACK_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = blink ? '#ff4400' : '#111';
-        ctx.fill();
-        ctx.strokeStyle = '#444';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        ctx.beginPath(); ctx.arc(bc.x, bc.y, BLACK_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = blink ? '#ff4400' : '#111'; ctx.fill();
+        ctx.strokeStyle = '#444'; ctx.lineWidth = 2; ctx.stroke();
       }
 
-      // 폭발 이펙트
       for (const ex of explosions) {
-        ctx.beginPath();
-        ctx.arc(ex.x, ex.y, ex.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 120, 0, ${ex.alpha * 0.5})`;
-        ctx.fill();
-        ctx.strokeStyle = `rgba(255, 200, 0, ${ex.alpha})`;
-        ctx.lineWidth = 3;
-        ctx.stroke();
+        ctx.beginPath(); ctx.arc(ex.x, ex.y, ex.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,120,0,${ex.alpha*0.5})`; ctx.fill();
+        ctx.strokeStyle = `rgba(255,200,0,${ex.alpha})`; ctx.lineWidth = 3; ctx.stroke();
       }
 
-      // 하트
       for (const h of hearts) drawHeart(h.x, h.y);
-
-      // 화살
       for (const a of arrows) drawArrow(a);
 
-      // 체력 수치 텍스트
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 11px Arial';
-      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
       ctx.fillText(`${circle.hp} / ${circle.maxHp}`, circle.x, barY - 3);
 
       if (gameStarted && !stageClearring) {
-        // 대기 타이머
         const idle = Date.now() - lastKeyTime;
         const idleLeft = Math.max(0, (IDLE_LIMIT - idle) / 1000);
-        const danger = idleLeft < 1;
         ctx.font = 'bold 13px Arial';
-        ctx.fillStyle = danger ? '#ff3333' : '#fff';
+        ctx.fillStyle = idleLeft < 1 ? '#ff3333' : '#fff';
         ctx.textAlign = 'right';
-        ctx.fillText(`⏱ ${idleLeft.toFixed(1)}s`, MAP_SIZE - 8, 20);
-
-        // 스테이지 & 생존 타이머
+        ctx.fillText(`⏱ ${idleLeft.toFixed(1)}s`, MAP_W - 8, 20);
         const stageLeft = Math.max(0, (STAGE_DURATION - (Date.now() - stageStartTime)) / 1000);
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left'; ctx.fillStyle = '#fff';
         ctx.fillText(`스테이지 ${stage}`, 8, 20);
         ctx.fillStyle = '#ffe066';
         ctx.fillText(`${stageLeft.toFixed(1)}s 생존`, 8, 38);
       } else if (!gameStarted) {
-        ctx.font = '13px Arial';
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.textAlign = 'center';
-        ctx.fillText('방향키를 눌러 시작하세요', MAP_SIZE / 2, MAP_SIZE / 2 + 40);
+        ctx.font = '16px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.textAlign = 'center';
+        ctx.fillText('방향키를 눌러 시작하세요', MAP_W / 2, MAP_H / 2 + 40);
       }
 
-      // 스테이지 클리어 오버레이
       if (stageClearring) {
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#ffe066';
-        ctx.font = 'bold 52px Arial';
-        ctx.fillText('스테이지 클리어!', MAP_SIZE / 2, MAP_SIZE / 2 - 10);
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 24px Arial';
-        ctx.fillText(`스테이지 ${stage + 1} 시작...`, MAP_SIZE / 2, MAP_SIZE / 2 + 40);
+        ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, MAP_W, MAP_H);
+        ctx.textAlign = 'center'; ctx.fillStyle = '#ffe066'; ctx.font = 'bold 52px Arial';
+        ctx.fillText('스테이지 클리어!', MAP_W / 2, MAP_H / 2 - 10);
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 24px Arial';
+        ctx.fillText(`스테이지 ${stage + 1} 시작...`, MAP_W / 2, MAP_H / 2 + 40);
       }
     }
 
     function drawGameOver() {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-      ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
-
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#ff3333';
-      ctx.font = 'bold 64px Arial';
-      ctx.fillText('게임오버', MAP_SIZE / 2, MAP_SIZE / 2);
-
-      ctx.fillStyle = '#fff';
-      ctx.font = '20px Arial';
-      ctx.fillText('체력이 모두 소진되었습니다', MAP_SIZE / 2, MAP_SIZE / 2 + 48);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, MAP_W, MAP_H);
+      ctx.textAlign = 'center'; ctx.fillStyle = '#ff3333'; ctx.font = 'bold 64px Arial';
+      ctx.fillText('게임오버', MAP_W / 2, MAP_H / 2);
+      ctx.fillStyle = '#fff'; ctx.font = '20px Arial';
+      ctx.fillText('체력이 모두 소진되었습니다', MAP_W / 2, MAP_H / 2 + 48);
     }
 
     function gameLoop() {
-      update();
-      draw();
-      if (circle.hp <= 0 && !stageClearring) {
-        stopBgm();
-        drawGameOver();
-        return;
-      }
+      update(); draw();
+      if (circle.hp <= 0 && !stageClearring) { stopBgm(); drawGameOver(); return; }
       requestAnimationFrame(gameLoop);
     }
 
