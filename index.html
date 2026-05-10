@@ -118,10 +118,16 @@
       ArrowRight: false,
     };
 
+    const IDLE_LIMIT = 3000;
+    let gameStarted = false;
+    let lastKeyTime = 0;
+
     document.addEventListener('keydown', (e) => {
       if (!keys.hasOwnProperty(e.key)) return;
       e.preventDefault();
       if (!keys[e.key]) {
+        if (!gameStarted) gameStarted = true;
+        lastKeyTime = Date.now();
         const tx = circle.x;
         const ty = circle.y;
         setTimeout(() => { if (circle.hp > 0) spawnArrowToward(tx, ty); }, 500);
@@ -245,6 +251,9 @@
       if (keys.ArrowDown)  circle.y = Math.min(MAP_SIZE - CIRCLE_RADIUS, circle.y + SPEED);
       if (keys.ArrowLeft)  circle.x = Math.max(CIRCLE_RADIUS, circle.x - SPEED);
       if (keys.ArrowRight) circle.x = Math.min(MAP_SIZE - CIRCLE_RADIUS, circle.x + SPEED);
+      if (gameStarted && Date.now() - lastKeyTime >= IDLE_LIMIT) {
+        circle.hp = 0;
+      }
       updateArrows();
       updateBlackCircles();
     }
@@ -324,6 +333,22 @@
       ctx.font = 'bold 11px Arial';
       ctx.textAlign = 'center';
       ctx.fillText(`${circle.hp} / ${circle.maxHp}`, circle.x, barY - 3);
+
+      // 대기 타이머
+      if (gameStarted) {
+        const idle = Date.now() - lastKeyTime;
+        const remaining = Math.max(0, (IDLE_LIMIT - idle) / 1000);
+        const danger = remaining < 1;
+        ctx.font = `bold 14px Arial`;
+        ctx.fillStyle = danger ? '#ff3333' : '#fff';
+        ctx.textAlign = 'right';
+        ctx.fillText(`⏱ ${remaining.toFixed(1)}s`, MAP_SIZE - 8, 20);
+      } else {
+        ctx.font = '13px Arial';
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.textAlign = 'center';
+        ctx.fillText('방향키를 눌러 시작하세요', MAP_SIZE / 2, MAP_SIZE / 2 + 40);
+      }
     }
 
     function drawGameOver() {
