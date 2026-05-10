@@ -220,7 +220,7 @@
         b.x += b.vx; b.y += b.vy;
         if (redCircle && Math.hypot(b.x - redCircle.x, b.y - redCircle.y) < RED_RADIUS + YELLOW_RADIUS) {
           redCircle.hp -= 2;
-          if (redCircle.hp <= 0) { redCircle = null; greenCircles.length = 0; }
+          if (redCircle.hp <= 0) { redCircle = null; greenCircles.length = 0; stageClearring = true; stageClearAt = Date.now(); }
           yellowBullets.splice(i, 1); continue;
         }
         if (b.x < -50 || b.x > MAP_W + 50 || b.y < -50 || b.y > MAP_H + 50) yellowBullets.splice(i, 1);
@@ -319,7 +319,7 @@
         a.x += a.vx; a.y += a.vy;
         if (redCircle && Math.hypot(a.x - redCircle.x, a.y - redCircle.y) < RED_RADIUS) {
           redCircle.hp -= 10;
-          if (redCircle.hp <= 0) { redCircle = null; greenCircles.length = 0; }
+          if (redCircle.hp <= 0) { redCircle = null; greenCircles.length = 0; if (stage === 5) { stageClearring = true; stageClearAt = Date.now(); } }
           arrows.splice(i, 1); continue;
         }
         if (Math.hypot(a.x - circle.x, a.y - circle.y) < CIRCLE_RADIUS) {
@@ -374,7 +374,7 @@
       if (keys.ArrowRight) circle.x = Math.min(MAP_W - CIRCLE_RADIUS, circle.x + SPEED);
       const now = Date.now();
       if (gameStarted && !stageClearring && now - lastKeyTime >= diffConfigs[difficulty].idleLimit) circle.hp = 0;
-      if (gameStarted && !stageClearring && now - stageStartTime >= STAGE_DURATION) { stageClearring = true; stageClearAt = now; }
+      if (gameStarted && !stageClearring && now - stageStartTime >= STAGE_DURATION && stage !== 5) { stageClearring = true; stageClearAt = now; }
       if (stageClearring && now - stageClearAt >= 2000) advanceStage();
       updateArrows(); updateBlackCircles(); updateGreenCircles(); updateYellowBullets(); updateHearts();
     }
@@ -453,7 +453,12 @@
         ctx.textAlign = 'left'; ctx.fillStyle = '#fff';
         ctx.fillText(`스테이지 ${stage}`, 8, 20);
         ctx.fillStyle = '#ffe066';
-        ctx.fillText(`${stageLeft.toFixed(1)}s 생존`, 8, 38);
+        if (stage === 5) {
+          ctx.fillStyle = '#ff6666'; ctx.font = 'bold 13px Arial';
+          ctx.fillText('보스를 처치하세요!', 8, 38);
+        } else {
+          ctx.fillText(`${stageLeft.toFixed(1)}s 생존`, 8, 38);
+        }
         ctx.fillStyle = diffColors[difficulty]; ctx.font = 'bold 12px Arial';
         ctx.fillText(`[${diffLabels[difficulty]}]`, 8, 56);
       }
