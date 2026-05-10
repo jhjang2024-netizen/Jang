@@ -64,34 +64,29 @@
     };
 
     const ARROW_SPEED = 3;
-    const MAX_ARROWS = 5;
     const arrows = [];
 
-    function randomPos() {
-      return {
-        x: Math.random() * MAP_SIZE,
-        y: Math.random() * MAP_SIZE,
-      };
-    }
+    function spawnArrowToward(tx, ty) {
+      const edge = Math.floor(Math.random() * 4);
+      let fx, fy;
+      if (edge === 0) { fx = Math.random() * MAP_SIZE; fy = 0; }
+      else if (edge === 1) { fx = MAP_SIZE; fy = Math.random() * MAP_SIZE; }
+      else if (edge === 2) { fx = Math.random() * MAP_SIZE; fy = MAP_SIZE; }
+      else { fx = 0; fy = Math.random() * MAP_SIZE; }
 
-    function spawnArrow() {
-      const from = randomPos();
-      const to = randomPos();
-      const dx = to.x - from.x;
-      const dy = to.y - from.y;
+      const dx = tx - fx;
+      const dy = ty - fy;
       const dist = Math.hypot(dx, dy);
       arrows.push({
-        x: from.x,
-        y: from.y,
+        x: fx,
+        y: fy,
         vx: (dx / dist) * ARROW_SPEED,
         vy: (dy / dist) * ARROW_SPEED,
         angle: Math.atan2(dy, dx),
-        targetX: to.x,
-        targetY: to.y,
+        targetX: tx,
+        targetY: ty,
       });
     }
-
-    for (let i = 0; i < MAX_ARROWS; i++) spawnArrow();
 
     const keys = {
       ArrowUp: false,
@@ -101,10 +96,14 @@
     };
 
     document.addEventListener('keydown', (e) => {
-      if (keys.hasOwnProperty(e.key)) {
-        e.preventDefault();
-        keys[e.key] = true;
+      if (!keys.hasOwnProperty(e.key)) return;
+      e.preventDefault();
+      if (!keys[e.key]) {
+        const tx = circle.x;
+        const ty = circle.y;
+        setTimeout(() => { if (circle.hp > 0) spawnArrowToward(tx, ty); }, 500);
       }
+      keys[e.key] = true;
     });
 
     document.addEventListener('keyup', (e) => {
@@ -131,7 +130,6 @@
         const dy = a.targetY - a.y;
         if (Math.hypot(dx, dy) < ARROW_SPEED + 1) {
           arrows.splice(i, 1);
-          spawnArrow();
         }
       }
     }
