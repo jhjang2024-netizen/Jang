@@ -456,7 +456,6 @@
       if (keys.ArrowLeft)  circle.x = Math.max(CIRCLE_RADIUS, circle.x - SPEED);
       if (keys.ArrowRight) circle.x = Math.min(MAP_W - CIRCLE_RADIUS, circle.x + SPEED);
       const now = Date.now();
-      if (gameStarted && !stageClearring && now - lastKeyTime >= diffConfigs[difficulty].idleLimit) circle.hp = 0;
       if (gameStarted && !stageClearring && now - stageStartTime >= STAGE_DURATION && stage !== 5) { stageClearring = true; stageClearAt = now; }
       if (gameStarted && !stageClearring && circle.hp > 0 && now - lastArrowSpawn >= ARROW_INTERVAL) {
         spawnArrowToward(circle.x, circle.y); lastArrowSpawn = now;
@@ -524,12 +523,6 @@
       ctx.fillText(`${circle.hp} / ${circle.maxHp}`, circle.x, barY - 3);
 
       if (gameStarted && !stageClearring) {
-        const idle = Date.now() - lastKeyTime;
-        const idleLeft = Math.max(0, (diffConfigs[difficulty].idleLimit - idle) / 1000);
-        ctx.font = 'bold 13px Arial';
-        ctx.fillStyle = idleLeft < 1 ? '#ff3333' : '#fff';
-        ctx.textAlign = 'right';
-        ctx.fillText(`⏱ ${idleLeft.toFixed(1)}s`, MAP_W - 8, 20);
         const stageLeft = Math.max(0, (STAGE_DURATION - (Date.now() - stageStartTime)) / 1000);
         const diffLabels = { easy:'쉬움', normal:'보통', hard:'어려움', veryhard:'매우어려움' };
         const diffColors = { easy:'#44cc88', normal:'#4488ff', hard:'#ff4444', veryhard:'#cc00ff' };
