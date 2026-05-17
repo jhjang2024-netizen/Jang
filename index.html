@@ -266,6 +266,31 @@
       }
     }
 
+    function drawBullet(g) {
+      const angle = Math.atan2(g.vy, g.vx) + Math.PI / 2;
+      const bw = GREEN_RADIUS * 2.2;
+      const bh = GREEN_RADIUS * 5.5;
+      ctx.save();
+      ctx.translate(g.x, g.y);
+      ctx.rotate(angle);
+      // Bullet tip (bright green, rounded point)
+      ctx.fillStyle = '#44ee44';
+      ctx.beginPath();
+      ctx.moveTo(-bw / 2, -bh * 0.05);
+      ctx.lineTo(bw / 2, -bh * 0.05);
+      ctx.quadraticCurveTo(bw / 2, -bh * 0.38, 0, -bh * 0.52);
+      ctx.quadraticCurveTo(-bw / 2, -bh * 0.38, -bw / 2, -bh * 0.05);
+      ctx.closePath();
+      ctx.fill();
+      // Casing body (dark green)
+      ctx.fillStyle = '#228822';
+      ctx.fillRect(-bw / 2, -bh * 0.05, bw, bh * 0.58);
+      // Rim at bottom
+      ctx.fillStyle = '#145214';
+      ctx.fillRect(-bw / 2 - 2, bh * 0.5, bw + 4, bh * 0.1);
+      ctx.restore();
+    }
+
     function drawHeart(hx, hy) {
       ctx.save(); ctx.translate(hx, hy);
       const s = 10;
@@ -405,10 +430,7 @@
         ctx.fillText(`${redCircle.hp} / ${RED_MAX_HP}`, redCircle.x, rby - 2);
       }
 
-      for (const g of greenCircles) {
-        ctx.beginPath(); ctx.arc(g.x, g.y, GREEN_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = '#22cc44'; ctx.fill(); ctx.strokeStyle = '#88ffaa'; ctx.lineWidth = 2; ctx.stroke();
-      }
+      for (const g of greenCircles) drawBullet(g);
 
       const now = Date.now();
       for (const bc of blackCircles) {
