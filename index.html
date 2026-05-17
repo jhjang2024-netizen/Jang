@@ -56,6 +56,17 @@
       transition: all 0.15s; letter-spacing: 2px;
     }
     #btnStart:hover { background: rgba(30,144,255,0.35); box-shadow: 0 0 20px rgba(30,144,255,0.5); }
+    #homeButtons { display: flex; gap: 16px; justify-content: center; margin-top: 24px; }
+    .home-side-btn {
+      padding: 12px 28px; font: bold 16px Arial; border-radius: 8px; cursor: pointer;
+      border: 2px solid; transition: all 0.15s;
+    }
+    #btnShop    { border-color: #ffaa00; color: #ffaa00; background: rgba(255,170,0,0.1); }
+    #btnShop:hover    { background: rgba(255,170,0,0.3); }
+    #btnUpgrade { border-color: #cc44ff; color: #cc44ff; background: rgba(204,68,255,0.1); }
+    #btnUpgrade:hover { background: rgba(204,68,255,0.3); }
+    #btnWorld   { border-color: #44ddaa; color: #44ddaa; background: rgba(68,221,170,0.1); }
+    #btnWorld:hover   { background: rgba(68,221,170,0.3); }
   </style>
 </head>
 <body>
@@ -65,6 +76,11 @@
     <h1>서바이버</h1>
     <p>화살과 장애물을 피해 살아남으세요</p>
     <button id="btnStart" onclick="showDiff()">시작하기</button>
+    <div id="homeButtons">
+      <button class="home-side-btn" id="btnShop"    onclick="alert('상점 준비 중!')">🛒 상점</button>
+      <button class="home-side-btn" id="btnUpgrade" onclick="alert('업그레이드 준비 중!')">⬆ 업그레이드</button>
+      <button class="home-side-btn" id="btnWorld"   onclick="alert('월드 준비 중!')">🌍 월드</button>
+    </div>
   </div>
 
   <div id="gameOverUI">
