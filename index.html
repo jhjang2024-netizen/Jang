@@ -363,15 +363,17 @@
 
     function drawHeart(hx, hy) {
       ctx.save(); ctx.translate(hx, hy);
-      const s = 10;
-      ctx.fillStyle = '#ff3366'; ctx.strokeStyle = '#ffaacc'; ctx.lineWidth = 1.5;
+      const s = 11;
+      ctx.fillStyle = '#e80000';
       ctx.beginPath();
-      ctx.moveTo(0, s * 0.35);
-      ctx.bezierCurveTo(0, s * 0.1, -s * 0.5, -s * 0.4, -s, -s * 0.15);
-      ctx.bezierCurveTo(-s * 1.5, s * 0.2, -s * 1.2, s * 0.8, 0, s * 1.2);
-      ctx.bezierCurveTo(s * 1.2, s * 0.8, s * 1.5, s * 0.2, s, -s * 0.15);
-      ctx.bezierCurveTo(s * 0.5, -s * 0.4, 0, s * 0.1, 0, s * 0.35);
-      ctx.fill(); ctx.stroke(); ctx.restore();
+      ctx.moveTo(0, s * 1.2);
+      ctx.bezierCurveTo(-s * 0.15, s * 0.85, -s * 1.5, s * 0.55, -s * 1.5, 0);
+      ctx.bezierCurveTo(-s * 1.5, -s * 0.75, -s * 0.75, -s * 1.1, 0, -s * 0.45);
+      ctx.bezierCurveTo(s * 0.75, -s * 1.1, s * 1.5, -s * 0.75, s * 1.5, 0);
+      ctx.bezierCurveTo(s * 1.5, s * 0.55, s * 0.15, s * 0.85, 0, s * 1.2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
     }
 
     function spawnArrowToward(tx, ty) {
