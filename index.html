@@ -166,8 +166,7 @@
 
     function startBgm() {
       if (bgmPlaying) return;
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      else audioCtx.resume();
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       bgmPlaying = true;
       scheduleBgm();
     }
@@ -175,7 +174,7 @@
     function stopBgm() {
       bgmPlaying = false;
       clearTimeout(bgmTimeout);
-      if (audioCtx) audioCtx.suspend();
+      if (audioCtx) { audioCtx.close(); audioCtx = null; }
     }
 
     const canvas = document.getElementById('gameCanvas');
