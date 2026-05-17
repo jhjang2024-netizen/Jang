@@ -40,10 +40,32 @@
     #btnReplay:hover { background: rgba(68,204,136,0.35); }
     #btnHome   { border-color: #4488ff; color: #4488ff; background: rgba(68,136,255,0.15); }
     #btnHome:hover   { background: rgba(68,136,255,0.35); }
+    #homeUI {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      text-align: center; z-index: 10;
+    }
+    #homeUI h1 {
+      color: #fff; font: bold 72px Arial; letter-spacing: 4px;
+      text-shadow: 0 0 30px rgba(100,180,255,0.8), 0 0 60px rgba(100,180,255,0.4);
+      margin-bottom: 12px;
+    }
+    #homeUI p { color: rgba(255,255,255,0.5); font: 16px Arial; margin-bottom: 48px; }
+    #btnStart {
+      padding: 16px 56px; font: bold 22px Arial; border-radius: 10px; cursor: pointer;
+      border: 3px solid #1e90ff; color: #1e90ff; background: rgba(30,144,255,0.15);
+      transition: all 0.15s; letter-spacing: 2px;
+    }
+    #btnStart:hover { background: rgba(30,144,255,0.35); box-shadow: 0 0 20px rgba(30,144,255,0.5); }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+
+  <div id="homeUI">
+    <h1>서바이버</h1>
+    <p>화살과 장애물을 피해 살아남으세요</p>
+    <button id="btnStart" onclick="showDiff()">시작하기</button>
+  </div>
 
   <div id="gameOverUI">
     <h1>게임오버</h1>
@@ -52,7 +74,7 @@
     <button class="go-btn" id="btnHome"   onclick="goHome()">홈으로 가기</button>
   </div>
 
-  <div id="diffUI">
+  <div id="diffUI" style="display:none">
     <h2>난이도 선택</h2>
     <div>
       <button class="diff-btn easy"     onclick="setDifficulty('easy')">쉬움</button>
@@ -352,6 +374,7 @@
           circle.maxHp = cfg.maxHp;
           circle.hp = cfg.maxHp;
           document.getElementById('diffUI').style.display = 'none';
+          document.getElementById('homeUI').style.display = 'none';
           stageStartTime = Date.now(); lastBlackSpawn = Date.now(); lastArrowSpawn = Date.now();
           lastHeartSpawn = Date.now(); startBgm();
         }
@@ -545,10 +568,16 @@
       gameLoop();
     }
 
+    function showDiff() {
+      document.getElementById('homeUI').style.display = 'none';
+      document.getElementById('diffUI').style.display = '';
+    }
+
     function goHome() {
       document.getElementById('gameOverUI').style.display = 'none';
       resetGameState();
-      document.getElementById('diffUI').style.display = '';
+      document.getElementById('diffUI').style.display = 'none';
+      document.getElementById('homeUI').style.display = '';
       stopBgm();
       gameLoop();
     }
