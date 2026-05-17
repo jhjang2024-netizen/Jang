@@ -418,7 +418,6 @@
           circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].arrowDamage); arrows.splice(i, 1); continue;
         }
         if (a.x < -50 || a.x > MAP_W + 50 || a.y < -50 || a.y > MAP_H + 50) { arrows.splice(i, 1); continue; }
-        if (Math.hypot(a.targetX - a.x, a.targetY - a.y) < arrowSpeed + 1) arrows.splice(i, 1);
       }
     }
 
