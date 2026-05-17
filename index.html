@@ -105,10 +105,10 @@
     // 난이도 설정
     let difficulty = 'normal';
     const diffConfigs = {
-      easy:    { arrowSpeedBase: 2,   arrowDamage: 8,  explosionDamage: 10, greenDamage: 8,  greenSpeed: 1.3, idleLimit: 5000, blackBase: 2500, maxHp: 150 },
-      normal:  { arrowSpeedBase: 3,   arrowDamage: 12, explosionDamage: 16, greenDamage: 12, greenSpeed: 1.8, idleLimit: 3000, blackBase: 2000, maxHp: 100 },
-      hard:    { arrowSpeedBase: 4.5, arrowDamage: 18, explosionDamage: 25, greenDamage: 18, greenSpeed: 2.5, idleLimit: 2000, blackBase: 1400, maxHp: 80  },
-      veryhard:{ arrowSpeedBase: 6,   arrowDamage: 25, explosionDamage: 35, greenDamage: 25, greenSpeed: 3.2, idleLimit: 1500, blackBase: 1000, maxHp: 60  },
+      easy:    { arrowSpeedBase: 2.68, arrowDamage: 8,  explosionDamage: 10, greenDamage: 8,  greenSpeed: 1.3, idleLimit: 5000, blackBase: 2500, maxHp: 150 },
+      normal:  { arrowSpeedBase: 4.02, arrowDamage: 12, explosionDamage: 16, greenDamage: 12, greenSpeed: 1.8, idleLimit: 3000, blackBase: 2000, maxHp: 100 },
+      hard:    { arrowSpeedBase: 6.03, arrowDamage: 18, explosionDamage: 25, greenDamage: 18, greenSpeed: 2.5, idleLimit: 2000, blackBase: 1400, maxHp: 80  },
+      veryhard:{ arrowSpeedBase: 8.04, arrowDamage: 25, explosionDamage: 35, greenDamage: 25, greenSpeed: 3.2, idleLimit: 1500, blackBase: 1000, maxHp: 60  },
     };
 
     function setDifficulty(d) {
@@ -203,7 +203,7 @@
     });
 
     const CIRCLE_RADIUS = 20;
-    const SPEED = 4;
+    const SPEED = 5.36;
 
     const circle = {
       x: MAP_W / 2,
@@ -314,7 +314,7 @@
     }
 
     function advanceStage() {
-      stage++; arrowSpeed = diffConfigs[difficulty].arrowSpeedBase + (stage - 1) * 0.5;
+      stage++; arrowSpeed = diffConfigs[difficulty].arrowSpeedBase + (stage - 1) * 0.67;
       arrows.length = 0; blackCircles.length = 0; explosions.length = 0;
       greenCircles.length = 0; yellowBullets.length = 0; hearts.length = 0; redCircle = null;
       stageStartTime = Date.now(); lastBlackSpawn = Date.now(); lastArrowSpawn = Date.now();
