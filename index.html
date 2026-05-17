@@ -158,6 +158,8 @@
 
     function stageBlackInterval() { return Math.max(800, diffConfigs[difficulty].blackBase - (stage - 1) * 200); }
     let lastBlackSpawn = 0;
+    let lastArrowSpawn = 0;
+    const ARROW_INTERVAL = 1500;
 
     function spawnBlackCircle() {
       blackCircles.push({
@@ -247,7 +249,7 @@
       stage++; arrowSpeed = diffConfigs[difficulty].arrowSpeedBase + (stage - 1) * 0.5;
       arrows.length = 0; blackCircles.length = 0; explosions.length = 0;
       greenCircles.length = 0; yellowBullets.length = 0; hearts.length = 0; redCircle = null;
-      stageStartTime = Date.now(); lastBlackSpawn = Date.now();
+      stageStartTime = Date.now(); lastBlackSpawn = Date.now(); lastArrowSpawn = Date.now();
       lastHeartSpawn = Date.now(); stageClearring = false; lastKeyTime = Date.now();
     }
 
@@ -302,12 +304,10 @@
           circle.maxHp = cfg.maxHp;
           circle.hp = cfg.maxHp;
           document.getElementById('diffUI').style.display = 'none';
-          stageStartTime = Date.now(); lastBlackSpawn = Date.now();
+          stageStartTime = Date.now(); lastBlackSpawn = Date.now(); lastArrowSpawn = Date.now();
           lastHeartSpawn = Date.now(); startBgm();
         }
         lastKeyTime = Date.now();
-        const tx = circle.x, ty = circle.y;
-        setTimeout(() => { if (circle.hp > 0) spawnArrowToward(tx, ty); }, 500);
       }
       keys[e.key] = true;
     });
@@ -373,6 +373,9 @@
       const now = Date.now();
       if (gameStarted && !stageClearring && now - lastKeyTime >= diffConfigs[difficulty].idleLimit) circle.hp = 0;
       if (gameStarted && !stageClearring && now - stageStartTime >= STAGE_DURATION && stage !== 5) { stageClearring = true; stageClearAt = now; }
+      if (gameStarted && !stageClearring && circle.hp > 0 && now - lastArrowSpawn >= ARROW_INTERVAL) {
+        spawnArrowToward(circle.x, circle.y); lastArrowSpawn = now;
+      }
       if (stageClearring && now - stageClearAt >= 2000) advanceStage();
       updateArrows(); updateBlackCircles(); updateGreenCircles(); updateYellowBullets(); updateHearts();
     }
