@@ -240,7 +240,7 @@
     function triggerExplosion(bc) {
       explosions.push({ x: bc.x, y: bc.y, r: BLACK_RADIUS, maxR: EXPLODE_RADIUS, alpha: 1 });
       if (Math.hypot(circle.x - bc.x, circle.y - bc.y) < EXPLODE_RADIUS + CIRCLE_RADIUS)
-        circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].explosionDamage); lastDamageTime = Date.now();
+        if (Date.now() > shieldEndTime) { circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].explosionDamage); lastDamageTime = Date.now(); }
     }
 
     const RED_RADIUS = CIRCLE_RADIUS * 4;
@@ -250,6 +250,11 @@
     const HEART_HEAL = 23;
     const hearts = [];
     let lastHeartSpawn = 0;
+    const SHIELD_INTERVAL = 20000;
+    const SHIELD_DURATION = 6000;
+    const shields = [];
+    let lastShieldSpawn = 0;
+    let shieldEndTime = 0;
     let redCircle = null;
     const greenCircles = [];
     let lastGreenSpawn = 0;
@@ -309,7 +314,7 @@
         const g = greenCircles[i];
         g.x += g.vx; g.y += g.vy;
         if (Math.hypot(g.x - circle.x, g.y - circle.y) < CIRCLE_RADIUS + GREEN_RADIUS) {
-          circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].greenDamage); lastDamageTime = Date.now(); greenCircles.splice(i, 1); continue;
+          if (Date.now() > shieldEndTime) { circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].greenDamage); lastDamageTime = Date.now(); } greenCircles.splice(i, 1); continue;
         }
         if (g.x < -50 || g.x > MAP_W + 50 || g.y < -50 || g.y > MAP_H + 50) greenCircles.splice(i, 1);
       }
@@ -318,7 +323,7 @@
     function advanceStage() {
       stage++; arrowSpeed = diffConfigs[difficulty].arrowSpeedBase + (stage - 1) * 0.67;
       arrows.length = 0; blackCircles.length = 0; explosions.length = 0;
-      greenCircles.length = 0; yellowBullets.length = 0; hearts.length = 0; redCircle = null;
+      greenCircles.length = 0; yellowBullets.length = 0; hearts.length = 0; shields.length = 0; redCircle = null;
       stageStartTime = Date.now(); lastBlackSpawn = Date.now(); lastArrowSpawn = Date.now();
       lastHeartSpawn = Date.now(); stageClearring = false; lastKeyTime = Date.now();
     }
@@ -334,6 +339,40 @@
           circle.hp = Math.min(circle.maxHp, circle.hp + HEART_HEAL); hearts.splice(i, 1);
         }
       }
+    }
+
+    function updateShields() {
+      const now = Date.now();
+      if (gameStarted && !stageClearring && now - lastShieldSpawn >= SHIELD_INTERVAL) {
+        shields.push({ x: 20 + Math.random() * (MAP_W - 40), y: 20 + Math.random() * (MAP_H - 40) });
+        lastShieldSpawn = now;
+      }
+      for (let i = shields.length - 1; i >= 0; i--) {
+        if (Math.hypot(shields[i].x - circle.x, shields[i].y - circle.y) < CIRCLE_RADIUS + 12) {
+          shieldEndTime = Date.now() + SHIELD_DURATION; shields.splice(i, 1);
+        }
+      }
+    }
+
+    function drawShieldItem(x, y) {
+      const t = Date.now() / 600;
+      ctx.save(); ctx.translate(x, y);
+      // 외곽 글로우
+      ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(80,180,255,${0.15 + 0.1 * Math.sin(t)})`; ctx.fill();
+      // 방패 몸체
+      ctx.beginPath();
+      ctx.moveTo(0, 14); ctx.lineTo(-10, 6); ctx.lineTo(-10, -6);
+      ctx.lineTo(0, -12); ctx.lineTo(10, -6); ctx.lineTo(10, 6);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(40,140,255,${0.85 + 0.1 * Math.sin(t)})`;
+      ctx.fill();
+      ctx.strokeStyle = '#88ddff'; ctx.lineWidth = 2; ctx.stroke();
+      // 십자 문양
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(0, 6); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(5, 0); ctx.stroke();
+      ctx.restore();
     }
 
     function drawBullet(g) {
@@ -419,7 +458,7 @@
           arrows.splice(i, 1); continue;
         }
         if (Math.hypot(a.x - circle.x, a.y - circle.y) < CIRCLE_RADIUS) {
-          circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].arrowDamage); lastDamageTime = Date.now(); arrows.splice(i, 1); continue;
+          if (Date.now() > shieldEndTime) { circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].arrowDamage); lastDamageTime = Date.now(); } arrows.splice(i, 1); continue;
         }
         if (a.x < -50 || a.x > MAP_W + 50 || a.y < -50 || a.y > MAP_H + 50) { arrows.splice(i, 1); continue; }
       }
@@ -468,7 +507,7 @@
       if (gameStarted && circle.hp > 0 && lastDamageTime > 0 && now - lastRegenTime >= 1000) {
         circle.hp = Math.min(circle.maxHp, circle.hp + 1); lastRegenTime = now;
       }
-      updateArrows(); updateBlackCircles(); updateGreenCircles(); updateYellowBullets(); updateHearts();
+      updateArrows(); updateBlackCircles(); updateGreenCircles(); updateYellowBullets(); updateHearts(); updateShields();
     }
 
     function draw() {
@@ -556,6 +595,18 @@
         ctx.strokeStyle = '#ffaa00'; ctx.lineWidth = 2; ctx.stroke();
       }
       for (const h of hearts) drawHeart(h.x, h.y);
+      for (const s of shields) drawShieldItem(s.x, s.y);
+      // 실드 활성화 시 플레이어 주위 실드 링
+      if (Date.now() < shieldEndTime) {
+        const t = Date.now() / 300;
+        const remaining = (shieldEndTime - Date.now()) / SHIELD_DURATION;
+        ctx.save();
+        ctx.beginPath(); ctx.arc(circle.x, circle.y, CIRCLE_RADIUS + 7, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(80,180,255,${0.6 + 0.4 * Math.sin(t)})`; ctx.lineWidth = 3; ctx.stroke();
+        ctx.beginPath(); ctx.arc(circle.x, circle.y, CIRCLE_RADIUS + 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * remaining);
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.restore();
+      }
       for (const a of arrows) drawArrow(a);
 
       ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center';
@@ -593,9 +644,9 @@
       circle.hp = 100; circle.maxHp = 100;
       arrowSpeed = 3;
       arrows.length = 0; blackCircles.length = 0; explosions.length = 0;
-      greenCircles.length = 0; yellowBullets.length = 0; hearts.length = 0;
-      redCircle = null;
-      lastBlackSpawn = 0; lastArrowSpawn = 0; lastHeartSpawn = 0;
+      greenCircles.length = 0; yellowBullets.length = 0; hearts.length = 0; shields.length = 0;
+      redCircle = null; shieldEndTime = 0;
+      lastBlackSpawn = 0; lastArrowSpawn = 0; lastHeartSpawn = 0; lastShieldSpawn = 0;
       lastYellowShot = 0; lastGreenSpawn = 0; lastKeyTime = 0; lastDamageTime = 0; lastRegenTime = 0;
       stageStartTime = 0; stageClearAt = 0;
       Object.keys(keys).forEach(k => keys[k] = false);
