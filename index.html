@@ -240,7 +240,7 @@
     function triggerExplosion(bc) {
       explosions.push({ x: bc.x, y: bc.y, r: BLACK_RADIUS, maxR: EXPLODE_RADIUS, alpha: 1 });
       if (Math.hypot(circle.x - bc.x, circle.y - bc.y) < EXPLODE_RADIUS + CIRCLE_RADIUS)
-        circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].explosionDamage);
+        circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].explosionDamage); lastDamageTime = Date.now();
     }
 
     const RED_RADIUS = CIRCLE_RADIUS * 4;
@@ -255,6 +255,8 @@
     let lastGreenSpawn = 0;
     const yellowBullets = [];
     let lastYellowShot = 0;
+    let lastDamageTime = 0;
+    let lastRegenTime = 0;
     const YELLOW_RADIUS = GREEN_RADIUS;
     const YELLOW_SPEED = 5;
     const YELLOW_INTERVAL = 300;
@@ -307,7 +309,7 @@
         const g = greenCircles[i];
         g.x += g.vx; g.y += g.vy;
         if (Math.hypot(g.x - circle.x, g.y - circle.y) < CIRCLE_RADIUS + GREEN_RADIUS) {
-          circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].greenDamage); greenCircles.splice(i, 1); continue;
+          circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].greenDamage); lastDamageTime = Date.now(); greenCircles.splice(i, 1); continue;
         }
         if (g.x < -50 || g.x > MAP_W + 50 || g.y < -50 || g.y > MAP_H + 50) greenCircles.splice(i, 1);
       }
@@ -415,7 +417,7 @@
           arrows.splice(i, 1); continue;
         }
         if (Math.hypot(a.x - circle.x, a.y - circle.y) < CIRCLE_RADIUS) {
-          circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].arrowDamage); arrows.splice(i, 1); continue;
+          circle.hp = Math.max(0, circle.hp - diffConfigs[difficulty].arrowDamage); lastDamageTime = Date.now(); arrows.splice(i, 1); continue;
         }
         if (a.x < -50 || a.x > MAP_W + 50 || a.y < -50 || a.y > MAP_H + 50) { arrows.splice(i, 1); continue; }
       }
@@ -461,6 +463,9 @@
         spawnArrowToward(circle.x, circle.y); lastArrowSpawn = now;
       }
       if (stageClearring && now - stageClearAt >= 2000) advanceStage();
+      if (gameStarted && circle.hp > 0 && lastDamageTime > 0 && now - lastRegenTime >= 1000) {
+        circle.hp = Math.min(circle.maxHp, circle.hp + 1); lastRegenTime = now;
+      }
       updateArrows(); updateBlackCircles(); updateGreenCircles(); updateYellowBullets(); updateHearts();
     }
 
@@ -557,7 +562,7 @@
       greenCircles.length = 0; yellowBullets.length = 0; hearts.length = 0;
       redCircle = null;
       lastBlackSpawn = 0; lastArrowSpawn = 0; lastHeartSpawn = 0;
-      lastYellowShot = 0; lastGreenSpawn = 0; lastKeyTime = 0;
+      lastYellowShot = 0; lastGreenSpawn = 0; lastKeyTime = 0; lastDamageTime = 0; lastRegenTime = 0;
       stageStartTime = 0; stageClearAt = 0;
       Object.keys(keys).forEach(k => keys[k] = false);
     }
