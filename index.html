@@ -122,6 +122,7 @@
     let audioCtx = null;
     let bgmPlaying = false;
     let bgmTimeout = null;
+    let bgmNodes = [];
 
     function playNote(freq, duration, startTime, type = 'sawtooth', vol = 0.06) {
       const osc = audioCtx.createOscillator();
@@ -134,6 +135,7 @@
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration * 0.85);
       osc.start(startTime);
       osc.stop(startTime + duration);
+      bgmNodes.push(osc);
     }
 
     function scheduleBgm() {
@@ -166,7 +168,9 @@
 
     function startBgm() {
       if (bgmPlaying) return;
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx.resume();
+      bgmNodes = [];
       bgmPlaying = true;
       scheduleBgm();
     }
@@ -174,7 +178,11 @@
     function stopBgm() {
       bgmPlaying = false;
       clearTimeout(bgmTimeout);
-      if (audioCtx) { audioCtx.close(); audioCtx = null; }
+      if (audioCtx) {
+        const now = audioCtx.currentTime;
+        bgmNodes.forEach(osc => { try { osc.stop(now); } catch(e) {} });
+      }
+      bgmNodes = [];
     }
 
     const canvas = document.getElementById('gameCanvas');
