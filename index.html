@@ -323,7 +323,7 @@
     function advanceStage() {
       stage++; arrowSpeed = diffConfigs[difficulty].arrowSpeedBase + (stage - 1) * 0.67;
       arrows.length = 0; blackCircles.length = 0; explosions.length = 0;
-      greenCircles.length = 0; yellowBullets.length = 0; hearts.length = 0; shields.length = 0; redCircle = null;
+      greenCircles.length = 0; yellowBullets.length = 0; redCircle = null;
       stageStartTime = Date.now(); lastBlackSpawn = Date.now(); lastArrowSpawn = Date.now();
       lastHeartSpawn = Date.now(); stageClearring = false; lastKeyTime = Date.now();
     }
