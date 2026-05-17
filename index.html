@@ -25,10 +25,32 @@
     .diff-btn.hard.active     { border-color: #ff4444; color: #ff4444; background: rgba(255,68,68,0.2); }
     .diff-btn.veryhard.active { border-color: #cc00ff; color: #cc00ff; background: rgba(204,0,255,0.2); }
     #diffUI p { color: rgba(255,255,255,0.55); font: 14px Arial; margin-top: 18px; }
+    #gameOverUI {
+      display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      text-align: center; z-index: 10;
+    }
+    #gameOverUI h1 { color: #ff3333; font: bold 64px Arial; margin-bottom: 12px; text-shadow: 0 0 20px #ff0000; }
+    #gameOverUI p  { color: #fff; font: 20px Arial; margin-bottom: 32px; }
+    .go-btn {
+      display: inline-block; margin: 0 10px; padding: 13px 30px;
+      font: bold 18px Arial; border-radius: 8px; cursor: pointer;
+      border: 3px solid; transition: all 0.15s;
+    }
+    #btnReplay { border-color: #44cc88; color: #44cc88; background: rgba(68,204,136,0.15); }
+    #btnReplay:hover { background: rgba(68,204,136,0.35); }
+    #btnHome   { border-color: #4488ff; color: #4488ff; background: rgba(68,136,255,0.15); }
+    #btnHome:hover   { background: rgba(68,136,255,0.35); }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+
+  <div id="gameOverUI">
+    <h1>게임오버</h1>
+    <p>체력이 모두 소진되었습니다</p>
+    <button class="go-btn" id="btnReplay" onclick="replayGame()">다시 플레이</button>
+    <button class="go-btn" id="btnHome"   onclick="goHome()">홈으로 가기</button>
+  </div>
 
   <div id="diffUI">
     <h2>난이도 선택</h2>
@@ -495,12 +517,44 @@
       }
     }
 
+    function resetGameState() {
+      stage = 1; gameStarted = false; stageClearring = false;
+      circle.x = MAP_W / 2; circle.y = MAP_H / 2;
+      circle.hp = 100; circle.maxHp = 100;
+      arrowSpeed = 3;
+      arrows.length = 0; blackCircles.length = 0; explosions.length = 0;
+      greenCircles.length = 0; yellowBullets.length = 0; hearts.length = 0;
+      redCircle = null;
+      lastBlackSpawn = 0; lastArrowSpawn = 0; lastHeartSpawn = 0;
+      lastYellowShot = 0; lastGreenSpawn = 0; lastKeyTime = 0;
+      stageStartTime = 0; stageClearAt = 0;
+      Object.keys(keys).forEach(k => keys[k] = false);
+    }
+
+    function replayGame() {
+      document.getElementById('gameOverUI').style.display = 'none';
+      resetGameState();
+      const cfg = diffConfigs[difficulty];
+      gameStarted = true;
+      arrowSpeed = cfg.arrowSpeedBase;
+      circle.maxHp = cfg.maxHp; circle.hp = cfg.maxHp;
+      stageStartTime = Date.now(); lastBlackSpawn = Date.now();
+      lastArrowSpawn = Date.now(); lastHeartSpawn = Date.now(); lastKeyTime = Date.now();
+      startBgm();
+      gameLoop();
+    }
+
+    function goHome() {
+      document.getElementById('gameOverUI').style.display = 'none';
+      resetGameState();
+      document.getElementById('diffUI').style.display = '';
+      stopBgm();
+      gameLoop();
+    }
+
     function drawGameOver() {
       ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, MAP_W, MAP_H);
-      ctx.textAlign = 'center'; ctx.fillStyle = '#ff3333'; ctx.font = 'bold 64px Arial';
-      ctx.fillText('게임오버', MAP_W / 2, MAP_H / 2);
-      ctx.fillStyle = '#fff'; ctx.font = '20px Arial';
-      ctx.fillText('체력이 모두 소진되었습니다', MAP_W / 2, MAP_H / 2 + 48);
+      document.getElementById('gameOverUI').style.display = 'block';
     }
 
     function gameLoop() {
