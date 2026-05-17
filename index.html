@@ -129,6 +129,7 @@
     function startBgm() {
       if (bgmPlaying) return;
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      else audioCtx.resume();
       bgmPlaying = true;
       scheduleBgm();
     }
